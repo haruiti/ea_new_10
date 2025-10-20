@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Yhc;
+use App\Http\Controllers\LeadController;
 
 /*
 |--------------------------------------------------------------------------
@@ -89,3 +90,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [Yhc::class, 'dashboard']);
     Route::get('/atendimento', [Yhc::class, 'atendimento']);
 });
+// routes/web.php
+Route::resource('leads', LeadController::class);
