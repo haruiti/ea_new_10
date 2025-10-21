@@ -62,6 +62,9 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="#" onclick="dashboard()">Dashboard</a>
                             </li>
+                            <li class="nav-item">
+                                 <a class="nav-link" href="{{ url('/leads') }}">Leads</a>
+                            </li>
 
                             {{-- 🔹 Logout --}}
                             <li class="nav-item">
