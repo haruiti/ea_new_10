@@ -122,3 +122,8 @@ Route::middleware('auth')->group(function () {
 
 // 🔸 Rotas de leads
 Route::resource('leads', LeadController::class);
+
+Route::get('/run-migrate', function () {
+    Artisan::call('migrate', ['--force' => true]);
+    return '✅ Migrações executadas com sucesso!';
+});
