@@ -43,6 +43,36 @@ class LeadController extends Controller
                          ->with('success', 'Lead criado com sucesso!');
     }
 
+    public function apiStore(Request $request)
+    {
+        $validated = $request->validate([
+            'name'       => 'required|string|max:255',
+            'email'      => 'nullable|email|max:255',
+            'phone'      => 'nullable|string|max:30',
+            'message'    => 'nullable|string',
+            'lead_code'  => 'nullable|string|max:20',
+        ]);
+
+        $lead = Lead::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'] ?? null,
+            'phone' => $validated['phone'] ?? null,
+            'notes' => $validated['message'] ?? null,
+            'source' => 'landing_page',
+            'code' => $validated['lead_code'] ?? null,
+        ]);
+
+        // Aqui é onde o bot pode ser acionado (exemplo)
+        // event(new NewLeadCreated($lead));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lead criado com sucesso!',
+            'data' => $lead,
+        ]);
+    }
+
+
     /**
      * Exibe os detalhes de um lead
      */
@@ -213,6 +243,61 @@ class LeadController extends Controller
 
         return response()->json(['message' => 'Nome atualizado com sucesso!', 'lead' => $lead]);
     }
+
+    // =========================================================
+// 🌐 API — Recebe leads vindos do site (formulário HTML)
+// =========================================================
+    public function receberDoFormulario(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|min:3',
+                'email' => 'required|email',
+                'phone' => 'nullable|string',
+                'message' => 'required|string',
+                'lead_code' => 'required|string',
+            ]);
+
+            // 🔹 Cria o lead principal
+            $lead = \App\Models\Lead::create([
+                'lead_code' => $validated['lead_code'],
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'notes' => $validated['message'],
+                'source' => 'Formulário do Site',
+                'status' => 'novo',
+            ]);
+
+            // 🔹 Cria o tracking (caso você tenha a tabela)
+            if (class_exists(\App\Models\LeadTracking::class)) {
+                \App\Models\LeadTracking::create([
+                    'lead_code' => $validated['lead_code'],
+                    'gclid' => $request->input('gclid'),
+                    'utm_source' => $request->input('utm_source'),
+                    'utm_medium' => $request->input('utm_medium'),
+                    'utm_campaign' => $request->input('utm_campaign'),
+                    'utm_term' => $request->input('utm_term'),
+                    'utm_content' => $request->input('utm_content'),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'referrer' => $request->headers->get('referer'),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Lead recebido com sucesso! (Código: {$validated['lead_code']})"
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Erro ao salvar lead do formulário: '.$e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno ao salvar lead.'
+            ], 500);
+        }
+    }
+
 
 
 

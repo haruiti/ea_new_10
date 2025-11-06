@@ -23,6 +23,9 @@ Route::post('/leads/obter-ou-criar', [LeadController::class, 'obterOuCriar']);
 Route::get('/leads/corrigir-nomes', [LeadController::class, 'corrigirNomesImportados']);
 Route::put('/leads/updateByNumber/{numero}', [LeadController::class, 'updateByNumber']);
 Route::put('/leads/update-name', [LeadController::class, 'updateName']);
+Route::post('/receber-lead', [LeadController::class, 'receberDoFormulario']);
+Route::post('/leads', [LeadController::class, 'apiStore']);
+
 
 // -------------------------
 // CONVERSAS
