@@ -45,6 +45,16 @@ class LeadController extends Controller
 
     public function apiStore(Request $request)
     {
+
+        // Cabeçalhos CORS
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+        header("Access-Control-Allow-Headers: Content-Type, Authorization");
+
+        // Se for uma requisição OPTIONS (pré-flight)
+        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+            exit(0);
+        }
         $validated = $request->validate([
             'name'       => 'required|string|max:255',
             'email'      => 'nullable|email|max:255',
