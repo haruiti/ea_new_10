@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class LeadTracking extends Model
 {
     use HasFactory;
+    protected $table = 'leads_tracking';
 
     protected $fillable = [
         'lead_code',
