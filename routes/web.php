@@ -1,5 +1,5 @@
 <?php
-
+use App\Services\GoogleCalendarService;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
@@ -7,6 +7,28 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Yhc;
 use App\Http\Controllers\LeadController;
+// 🔹 Rotas para agendamentos (consultas)
+use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\ConversationController;
+use Spatie\GoogleCalendar\Event;
+use App\Http\Controllers\TrackingController;
+
+Route::get('/go-whatsapp', [TrackingController::class, 'redirectToWhatsApp'])->name('go.whatsapp');
+
+
+Route::get('/test-calendar', function () {
+    $service = new GoogleCalendarService();
+
+    $appointment = (object)[
+        'date' => '2025-10-28',
+        'time' => '15:00',
+        'lead' => (object)['name' => 'Teste via rota', 'phone' => '99999-9999']
+    ];
+
+    $eventId = $service->createEvent($appointment);
+
+    return "Evento criado com sucesso! ID: " . $eventId;
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -89,6 +111,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/deleteDespesa', [Yhc::class, 'deleteDespesa']);
     Route::get('/dashboard', [Yhc::class, 'dashboard']);
     Route::get('/atendimento', [Yhc::class, 'atendimento']);
+
+    Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+    Route::get('/appointments/create', [AppointmentController::class, 'create'])->name('appointments.create');
+    Route::post('/appointments', [AppointmentController::class, 'store'])->name('appointments.store');
+    Route::get('/appointments/{id}/edit', [AppointmentController::class, 'edit'])->name('appointments.edit');
+    Route::put('/appointments/{id}', [AppointmentController::class, 'update'])->name('appointments.update');
+    Route::delete('/appointments/{id}', [AppointmentController::class, 'destroy'])->name('appointments.destroy');
 });
-// routes/web.php
+
+// 🔸 Rotas de leads
 Route::resource('leads', LeadController::class);

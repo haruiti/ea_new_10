@@ -29,10 +29,18 @@
                 <td>{{ $lead->status }}</td>
                 <td>
                     <a href="{{ route('leads.edit', $lead->id) }}" class="btn btn-sm btn-warning">Editar</a>
+
+                    <a href="{{ route('appointments.create', ['lead_id' => $lead->id]) }}" 
+                       class="btn btn-sm btn-success">
+                        Agendar
+                    </a>
+
                     <form action="{{ route('leads.destroy', $lead->id) }}" method="POST" style="display:inline;">
                         @csrf
                         @method('DELETE')
-                        <button class="btn btn-sm btn-danger" onclick="return confirm('Excluir este lead?')">Excluir</button>
+                        <button class="btn btn-sm btn-danger" onclick="return confirm('Excluir este lead?')">
+                            Excluir
+                        </button>
                     </form>
                 </td>
             </tr>

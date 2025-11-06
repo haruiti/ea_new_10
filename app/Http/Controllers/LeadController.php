@@ -93,4 +93,128 @@ class LeadController extends Controller
         return redirect()->route('leads.index')
                          ->with('success', 'Lead excluído com sucesso!');
     }
+
+    // =========================================================
+    // 📱 API — Usado pelo Bot do WhatsApp
+    // =========================================================
+    public function obterOuCriar(Request $request)
+    {
+        $phone = preg_replace('/\D/', '', $request->phone); // remove caracteres não numéricos
+
+        if (!$phone) {
+            return response()->json(['error' => 'Número de telefone inválido.'], 400);
+        }
+
+        // Busca lead existente
+        $lead = Lead::where('phone', $phone)->first();
+
+        // Cria caso não exista
+        if (!$lead) {
+            $lead = Lead::create([
+                'name'   => $request->name ?? 'Cliente WhatsApp',
+                'phone'  => $phone,
+                'source' => 'WhatsApp Bot',
+                'status' => 'novo',
+            ]);
+        }
+
+        return response()->json([
+            'lead' => [
+                'id'    => $lead->id,
+                'name'  => $lead->name,
+                'phone' => $lead->phone,
+                'status'=> $lead->status,
+            ]
+        ]);
+    }
+
+    public function porNumero($numero)
+    {
+        // Remove tudo que não for número
+        $numeroLimpo = preg_replace('/\D/', '', $numero);
+
+        // Busca qualquer lead cujo número (também limpo) contenha a sequência
+        $lead = Lead::whereRaw("REGEXP_REPLACE(phone, '[^0-9]', '') LIKE ?", ["%{$numeroLimpo}%"])
+                    ->first();
+
+        if (!$lead) {
+            return response()->json(['error' => 'Lead não encontrado'], 404);
+        }
+
+        return response()->json($lead);
+    }
+
+
+    public function corrigirNomesImportados()
+    {
+        $leads = Lead::where('name', 'Lead importado')->get();
+        $corrigidos = 0;
+
+        foreach ($leads as $lead) {
+            $primeiraConversa = $lead->conversas()->orderBy('created_at', 'asc')->first();
+            if (!$primeiraConversa) continue;
+
+            $nome = $this->extrairNomePossivel($primeiraConversa->mensagem, $primeiraConversa->dados_extras['chatName'] ?? '');
+            if ($nome && $nome !== 'Lead importado') {
+                $lead->name = $nome;
+                $lead->save();
+                $corrigidos++;
+            }
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'corrigidos' => $corrigidos,
+        ]);
+    }
+
+    private function extrairNomePossivel($mensagem, $chatName)
+    {
+        // 1️⃣ Usa chatName se não for número
+        if ($chatName && !preg_match('/^\+?\d+$/', $chatName)) {
+            return trim($chatName);
+        }
+
+        // 2️⃣ Tenta achar nome no texto
+        if (preg_match('/(?:sou|meu nome é|aqui é|quem fala é)\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i', $mensagem, $m)) {
+            return trim($m[1]);
+        }
+
+        return 'Lead importado';
+    }
+
+    public function updateName(Request $request)
+    {
+        $lead = Lead::where('phone', $request->phone)->first();
+
+        if (!$lead) {
+            return response()->json(['error' => 'Lead não encontrado'], 404);
+        }
+
+        $lead->name = $request->name;
+        $lead->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function updateByNumber($phone, Request $request)
+    {
+        // remove qualquer caractere não numérico do telefone
+        $cleanPhone = preg_replace('/\D/', '', $phone);
+
+        $lead = \App\Models\Lead::where('phone', 'like', "%$cleanPhone%")->first();
+
+        if (!$lead) {
+            return response()->json(['message' => 'Lead não encontrado para o número informado.'], 404);
+        }
+
+        $lead->name = $request->input('name', $lead->name);
+        $lead->save();
+
+        return response()->json(['message' => 'Nome atualizado com sucesso!', 'lead' => $lead]);
+    }
+
+
+
+
 }

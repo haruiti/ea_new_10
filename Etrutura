@@ -1,0 +1,67 @@
+EA_NEW_10/
+│
+├── app/
+│   ├── Exceptions/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Auth/
+│   │   │   ├── appointmentController.php
+│   │   │   ├── AvailableAppointmentsController.php
+│   │   │   ├── ChatController.php
+│   │   │   ├── ConversationController.php
+│   │   │   ├── HomeController.php
+│   │   │   ├── LeadController.php
+│   │   │   ├── Yhc.php                ← núcleo do sistema da clínica
+│   │   │
+│   │   ├── Middleware/
+│   │   └── Kernel.php
+│   │
+│   ├── Models/
+│   │   ├── Appointment.php
+│   │   ├── ChatMessage.php
+│   │   ├── Conversation.php
+│   │   ├── Lead.php
+│   │   ├── User.php
+│   │   ├── CustomUser.php
+│   │   ├── User_old.php_old
+│   │   ├── YhcModel.php               ← modelo principal do sistema antigo
+│   │   ├── YhcUser.php
+│   │   └── Appointments.php (duplicado, provável versão antiga)
+│   │
+│   ├── Providers/
+│   └── Services/
+│       ├── SecretarialIAService.php   ← lógica principal da secretária IA
+│
+├── database/
+│   ├── migrations/
+│   │   ├── 0001_01_01_000002_create_jobs_table.php
+│   │   ├── 2014_10_12_000000_create_users_table.php
+│   │   ├── 2014_10_12_100000_create_password_resets_table.php
+│   │   ├── 2019_08_19_000000_create_failed_jobs_table.php
+│   │   ├── 2025_10_20_024009_create_leads_table.php
+│   │   ├── 2025_10_21_065238_create_appointments_table.php
+│   │   ├── 2025_10_23_222528_create_conversas_table.php
+│   │   └── 2025_10_24_021303_create_chat_messages_table.php
+│   ├── seeders/
+│   └── database.sqlite                ← banco SQLite local
+│
+├── public/
+│
+├── resources/
+│
+├── routes/
+│   ├── api.php                        ← rotas principais da IA e do sistema
+│   └── web.php
+│
+├── whatsapp-bot/
+│   ├── .wwebjs_auth/
+│   ├── .wwebjs_cache/
+│   ├── node_modules/
+│   ├── services/
+│   ├── index.js                       ← script do bot WhatsApp (principal)
+│   ├── package.json
+│   └── package-lock.json
+│
+├── .env
+├── .gitignore
+└── database.sqlite

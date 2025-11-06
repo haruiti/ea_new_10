@@ -65,6 +65,11 @@
                             <li class="nav-item">
                                  <a class="nav-link" href="{{ url('/leads') }}">Leads</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('appointments.index') }}">
+                                    Agendamentos
+                                </a>
+                            </li>
 
                             {{-- 🔹 Logout --}}
                             <li class="nav-item">
