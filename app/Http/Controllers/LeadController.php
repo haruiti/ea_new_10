@@ -309,6 +309,15 @@ class LeadController extends Controller
     }
 
 
+    public function goWhatsapp()
+    {
+        $lead_code = strtoupper(Str::random(8));
+
+        return response()->json([
+            'success' => true,
+            'lead_code' => $lead_code
+        ]);
+    }
 
 
 

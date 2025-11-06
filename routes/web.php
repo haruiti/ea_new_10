@@ -12,8 +12,25 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ConversationController;
 use Spatie\GoogleCalendar\Event;
 use App\Http\Controllers\TrackingController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
+// 🔹 Rota original (redirect para WhatsApp)
 Route::get('/go-whatsapp', [TrackingController::class, 'redirectToWhatsApp'])->name('go.whatsapp');
+
+// 🔹 Nova rota apenas para retornar JSON (sem redirecionar)
+Route::get('/api/get-lead-code', function (Request $request) {
+    $leadCode = Str::upper(Str::random(8));
+
+    return response()
+        ->json([
+            'lead_code' => $leadCode,
+            'status' => 'success'
+        ])
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+});
 
 
 Route::get('/test-calendar', function () {

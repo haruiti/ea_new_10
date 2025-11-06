@@ -4,36 +4,33 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use App\Models\LeadTracking;
+use Illuminate\Support\Facades\Log;
 
 class TrackingController extends Controller
 {
     public function redirectToWhatsApp(Request $request)
     {
-        // 1️⃣ Gera um código único
-        $leadCode = strtoupper(Str::random(8));
+        try {
+            // Gera o código do lead
+            $lead_code = strtoupper(Str::random(8));
 
-        // 2️⃣ Cria o registro
-        LeadTracking::create([
-            'lead_code' => $leadCode,
-            'gclid' => $request->get('gclid'),
-            'utm_source' => $request->get('utm_source'),
-            'utm_medium' => $request->get('utm_medium'),
-            'utm_campaign' => $request->get('utm_campaign'),
-            'utm_term' => $request->get('utm_term'),
-            'utm_content' => $request->get('utm_content'),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'referrer' => $request->headers->get('referer'),
-        ]);
+            // (Opcional) salva no banco, se quiser rastrear o lead
+            // Lead::create([...]);
 
-        // 3️⃣ Monta a mensagem personalizada
-        $whatsAppNumber = '5591985867184'; // seu número no formato internacional
-        $mensagem = urlencode("Olá, vi seu anúncio sobre hipnoterapia e quero entender melhor. (Código: {$leadCode})");
+            // Retorna um JSON ao invés de redirecionar
+            return response()->json([
+                'success' => true,
+                'lead_code' => $lead_code,
+                'numero' => '5591985867184',
+                'mensagem' => "Olá! Vi seu anúncio sobre hipnoterapia e quero entender melhor. (Código: {$lead_code})",
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro no go-whatsapp: '.$e->getMessage());
 
-        // 4️⃣ Redireciona para o WhatsApp
-        $whatsAppUrl = "https://wa.me/{$whatsAppNumber}?text={$mensagem}";
-
-        return redirect()->away($whatsAppUrl);
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro interno ao gerar link do WhatsApp'
+            ], 500);
+        }
     }
 }
