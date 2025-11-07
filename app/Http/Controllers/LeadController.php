@@ -328,17 +328,31 @@ class LeadController extends Controller
         }
 
         try {
+            // 1️⃣ Atualiza o tracking se já existir
             $tracking = \App\Models\LeadTracking::where('lead_code', $lead_code)->first();
 
             if ($tracking) {
                 $tracking->update(['clicked_at' => now()]);
             } else {
-                // Cria um novo tracking mínimo se ainda não existir
+                // 2️⃣ Cria tracking novo
                 \App\Models\LeadTracking::create([
                     'lead_code' => $lead_code,
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
                     'clicked_at' => now(),
+                ]);
+            }
+
+            // 3️⃣ Garante que também exista um lead principal
+            $lead = \App\Models\Lead::where('lead_code', $lead_code)->first();
+
+            if (!$lead) {
+                \App\Models\Lead::create([
+                    'lead_code' => $lead_code,
+                    'name' => 'Lead WhatsApp',
+                    'source' => 'Botão WhatsApp',
+                    'status' => 'novo',
+                    'notes' => 'Lead criado automaticamente a partir de clique no botão do WhatsApp.',
                 ]);
             }
 
@@ -348,9 +362,6 @@ class LeadController extends Controller
             return response()->json(['success' => false], 500);
         }
     }
-
-
-
 
 
 }
