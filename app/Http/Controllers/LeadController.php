@@ -270,7 +270,7 @@ class LeadController extends Controller
 
             // 🔹 Cria o lead principal
             $lead = \App\Models\Lead::create([
-                'code' => $validated['lead_code'],
+                'lead_code' => $validated['lead_code'],
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,

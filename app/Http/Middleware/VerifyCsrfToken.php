@@ -18,11 +18,11 @@ class VerifyCsrfToken extends Middleware
      *
      * @var array
      */
-    protected $except = [
-        'leads',
-        'public/leads',
-        'ea_new_10/public/leads',
-        'api/leads',
-        'api/receber-lead'
-    ];
+        protected $except = [
+            'leads',
+            'public/leads',
+            'ea_new_10/public/leads',
+            'api/leads',
+            'api/receber-lead'
+        ];
 }
