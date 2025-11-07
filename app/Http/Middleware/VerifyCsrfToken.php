@@ -19,7 +19,8 @@ class VerifyCsrfToken extends Middleware
      * @var array
      */
     protected $except = [
-        //
-        'leads', // ou o caminho exato da rota, ex: 'public/leads'
+        'leads',           // ← rota web principal
+        'api/leads',       // ← rota API
+        'api/receber-lead' // ← caso seu JS ainda use esta rota
     ];
 }
