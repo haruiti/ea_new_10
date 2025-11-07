@@ -328,29 +328,43 @@ class LeadController extends Controller
         }
 
         try {
-            // 1️⃣ Atualiza o tracking se já existir
+            // 1️⃣ Busca ou cria o tracking
             $tracking = \App\Models\LeadTracking::where('lead_code', $lead_code)->first();
 
             if ($tracking) {
-                $tracking->update(['clicked_at' => now()]);
+                $tracking->update([
+                    'clicked_at'   => now(),
+                    'gclid'        => $request->input('gclid'),
+                    'utm_source'   => $request->input('utm_source'),
+                    'utm_medium'   => $request->input('utm_medium'),
+                    'utm_campaign' => $request->input('utm_campaign'),
+                    'utm_term'     => $request->input('utm_term'),
+                    'utm_content'  => $request->input('utm_content'),
+                ]);
             } else {
-                // 2️⃣ Cria tracking novo
+                // 2️⃣ Cria novo tracking completo
                 \App\Models\LeadTracking::create([
-                    'lead_code' => $lead_code,
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'clicked_at' => now(),
+                    'lead_code'    => $lead_code,
+                    'gclid'        => $request->input('gclid'),
+                    'utm_source'   => $request->input('utm_source'),
+                    'utm_medium'   => $request->input('utm_medium'),
+                    'utm_campaign' => $request->input('utm_campaign'),
+                    'utm_term'     => $request->input('utm_term'),
+                    'utm_content'  => $request->input('utm_content'),
+                    'ip_address'   => $request->ip(),
+                    'user_agent'   => $request->userAgent(),
+                    'referrer'     => $request->headers->get('referer'),
+                    'clicked_at'   => now(),
                 ]);
             }
 
-            // 3️⃣ Garante que também exista um lead principal
+            // 3️⃣ Garante o lead correspondente
             $lead = \App\Models\Lead::where('lead_code', $lead_code)->first();
-
             if (!$lead) {
                 \App\Models\Lead::create([
                     'lead_code' => $lead_code,
-                    'name' => 'Lead WhatsApp',
-                    'source' => 'Botão WhatsApp',
+                    'name' => 'Lead ' . ucfirst($request->input('utm_source', 'WhatsApp')),
+                    'source' => $request->input('utm_source', 'Botão WhatsApp'),
                     'status' => 'novo',
                     'notes' => 'Lead criado automaticamente a partir de clique no botão do WhatsApp.',
                 ]);
@@ -362,6 +376,7 @@ class LeadController extends Controller
             return response()->json(['success' => false], 500);
         }
     }
+
 
 
 }
