@@ -10,6 +10,7 @@
         protected $table = 'leads';
 
         protected $fillable = [
+            'code',
             'name',
             'email',
             'phone',

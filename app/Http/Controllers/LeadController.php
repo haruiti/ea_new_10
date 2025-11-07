@@ -270,7 +270,7 @@ class LeadController extends Controller
 
             // 🔹 Cria o lead principal
             $lead = \App\Models\Lead::create([
-                'lead_code' => $validated['lead_code'],
+                'code' => $validated['lead_code'],
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,
@@ -280,20 +280,20 @@ class LeadController extends Controller
             ]);
 
             // 🔹 Cria o tracking (caso você tenha a tabela)
-            // if (class_exists(\App\Models\LeadTracking::class)) {
-            //     \App\Models\LeadTracking::create([
-            //         'lead_code' => $validated['lead_code'],
-            //         'gclid' => $request->input('gclid'),
-            //         'utm_source' => $request->input('utm_source'),
-            //         'utm_medium' => $request->input('utm_medium'),
-            //         'utm_campaign' => $request->input('utm_campaign'),
-            //         'utm_term' => $request->input('utm_term'),
-            //         'utm_content' => $request->input('utm_content'),
-            //         'ip_address' => $request->ip(),
-            //         'user_agent' => $request->userAgent(),
-            //         'referrer' => $request->headers->get('referer'),
-            //     ]);
-            // }
+            if (class_exists(\App\Models\LeadTracking::class)) {
+                \App\Models\LeadTracking::create([
+                    'lead_code' => $validated['lead_code'],
+                    'gclid' => $request->input('gclid'),
+                    'utm_source' => $request->input('utm_source'),
+                    'utm_medium' => $request->input('utm_medium'),
+                    'utm_campaign' => $request->input('utm_campaign'),
+                    'utm_term' => $request->input('utm_term'),
+                    'utm_content' => $request->input('utm_content'),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'referrer' => $request->headers->get('referer'),
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
