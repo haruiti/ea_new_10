@@ -321,6 +321,14 @@ class LeadController extends Controller
 
     public function registrarCliqueWhatsApp(Request $request)
     {
+
+            // 🔧 Corrige parsing do JSON caso não tenha sido interpretado automaticamente
+        if (empty($request->all())) {
+            $json = json_decode($request->getContent(), true);
+            if (is_array($json)) {
+                $request->merge($json);
+            }
+        }
         $lead_code = $request->input('lead_code');
 
         if (!$lead_code) {
