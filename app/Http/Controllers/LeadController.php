@@ -328,16 +328,27 @@ class LeadController extends Controller
         }
 
         try {
-            // Atualiza o leads_tracking com a data do clique
-            \App\Models\LeadTracking::where('lead_code', $lead_code)
-                ->update(['clicked_at' => now()]);
+            $tracking = \App\Models\LeadTracking::where('lead_code', $lead_code)->first();
+
+            if ($tracking) {
+                $tracking->update(['clicked_at' => now()]);
+            } else {
+                // Cria um novo tracking mínimo se ainda não existir
+                \App\Models\LeadTracking::create([
+                    'lead_code' => $lead_code,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'clicked_at' => now(),
+                ]);
+            }
 
             return response()->json(['success' => true]);
         } catch (\Throwable $e) {
-            \Log::error('Erro ao registrar clique no WhatsApp: '.$e->getMessage());
+            \Log::error('Erro ao registrar clique no WhatsApp: ' . $e->getMessage());
             return response()->json(['success' => false], 500);
         }
     }
+
 
 
 
