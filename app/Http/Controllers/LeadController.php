@@ -319,6 +319,27 @@ class LeadController extends Controller
         ]);
     }
 
+    public function registrarCliqueWhatsApp(Request $request)
+    {
+        $lead_code = $request->input('lead_code');
+
+        if (!$lead_code) {
+            return response()->json(['success' => false, 'message' => 'Código do lead ausente.'], 400);
+        }
+
+        try {
+            // Atualiza o leads_tracking com a data do clique
+            \App\Models\LeadTracking::where('lead_code', $lead_code)
+                ->update(['clicked_at' => now()]);
+
+            return response()->json(['success' => true]);
+        } catch (\Throwable $e) {
+            \Log::error('Erro ao registrar clique no WhatsApp: '.$e->getMessage());
+            return response()->json(['success' => false], 500);
+        }
+    }
+
+
 
 
 }
