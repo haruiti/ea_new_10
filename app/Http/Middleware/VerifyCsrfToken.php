@@ -20,6 +20,6 @@ class VerifyCsrfToken extends Middleware
      */
     protected $except = [
         //
-        'public/leads', // ou o caminho exato da rota, ex: 'public/leads'
+        'leads', // ou o caminho exato da rota, ex: 'public/leads'
     ];
 }
