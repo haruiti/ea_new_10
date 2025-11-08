@@ -88,9 +88,58 @@
 
             {{-- === TABELA DETALHADA === --}}
             <hr class="my-4">
-            <div class="table-responsive">
-                @include('yhc.partials.dashboard-table-detalhada', ['dados' => $dados])
-            </div>
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle text-center">
+        <thead class="table-light">
+            <tr>
+                <th>Mês/Ano</th>
+                <th>💰 Entradas (R$)</th>
+                <th>📉 Saídas (R$)</th>
+                <th>📊 Saldo (R$)</th>
+                <th>🧠 Consultas</th>
+                <th>💼 Tratamentos</th>
+                <th>🌀 Hipnose</th>
+                <th>🪞 Psicanálise</th>
+                <th>📅 Total Atendimentos</th>
+                <th>📈 Marketing</th>
+                <th>🚗 Transporte</th>
+                <th>🏢 Sala</th>
+                <th>🍽️ Alimentação</th>
+                <th>📦 Material</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($dados as $d)
+            <tr>
+                <td><strong>{{ $d['data'] }}</strong></td>
+                <td class="text-success fw-bold">{{ number_format($d['entrada'] ?? 0, 2, ',', '.') }}</td>
+                <td class="text-danger fw-bold">{{ number_format($d['saida'] ?? 0, 2, ',', '.') }}</td>
+                <td class="@if(($d['saldo'] ?? 0) >= 0) text-success @else text-danger @endif fw-bold">
+                    {{ number_format($d['saldo'] ?? 0, 2, ',', '.') }}
+                </td>
+                <td>{{ $d['consulta'] ?? 0 }}</td>
+                <td>{{ $d['tratamento'] ?? 0 }}</td>
+                <td>{{ $d['sessaohipnose'] ?? 0 }}</td>
+                <td>{{ $d['sessaopsicanalise'] ?? 0 }}</td>
+                <td class="fw-bold text-primary">
+                    {{
+                        ($d['consulta'] ?? 0) +
+                        ($d['tratamento'] ?? 0) +
+                        ($d['sessaohipnose'] ?? 0) +
+                        ($d['sessaopsicanalise'] ?? 0)
+                    }}
+                </td>
+                <td>{{ number_format($d['marketing'] ?? 0, 2, ',', '.') }}</td>
+                <td>{{ number_format($d['transporte'] ?? 0, 2, ',', '.') }}</td>
+                <td>{{ number_format($d['sala'] ?? 0, 2, ',', '.') }}</td>
+                <td>{{ number_format($d['alimentacao'] ?? 0, 2, ',', '.') }}</td>
+                <td>{{ number_format($d['material'] ?? 0, 2, ',', '.') }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+
 
         </div>
     </div>
