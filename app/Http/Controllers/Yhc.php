@@ -315,6 +315,9 @@ class Yhc extends Controller
         }
         
         $comparativoSemanal = $this->YhcModel->getComparativoSemanalFaturamento();
+        $dados = json_decode(json_encode($dados), true);
+        $comparativoSemanal = json_decode(json_encode($comparativoSemanal), true);
+
         // 🔹 Envia tudo para a view
        return view("yhc/dashboardTable")
         ->with('dados', $dados)
