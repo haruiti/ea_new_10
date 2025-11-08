@@ -28,17 +28,17 @@
                 <tbody>
                     @foreach ($dados as $item)
                         <tr>
-                            <td><strong>{{ $item['data'] }}</strong></td>
-                            <td class="text-success">R$ {{ number_format($item['entrada'], 2, ',', '.') }}</td>
-                            <td class="text-danger">R$ {{ number_format($item['saida'], 2, ',', '.') }}</td>
-                            <td class="{{ $item['saldo'] >= 0 ? 'text-success' : 'text-danger' }}">
-                                R$ {{ number_format($item['saldo'], 2, ',', '.') }}
+                            <td><strong>{{ $item->data }}</strong></td>
+                            <td class="text-success">R$ {{ number_format($item->entrada, 2, ',', '.') }}</td>
+                            <td class="text-danger">R$ {{ number_format($item->saida, 2, ',', '.') }}</td>
+                            <td class="{{ $item->saldo >= 0 ? 'text-success' : 'text-danger' }}">
+                                R$ {{ number_format($item->saldo, 2, ',', '.') }}
                             </td>
-                            <td>{{ $item['consulta'] }}</td>
-                            <td>{{ $item['tratamento'] }}</td>
-                            <td>{{ $item['sessaohipnose'] }}</td>
-                            <td>{{ $item['sessaopsicanalise'] }}</td>
-                            <td><strong>{{ $item['total_atendimentos'] }}</strong></td>
+                            <td>{{ $item->consulta }}</td>
+                            <td>{{ $item->tratamento }}</td>
+                            <td>{{ $item->sessaohipnose }}</td>
+                            <td>{{ $item->sessaopsicanalise }}</td>
+                            <td><strong>{{ $item->total_atendimentos }}</strong></td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -55,8 +55,8 @@
             @php
                 $agrupado = [];
                 foreach ($comparativoSemanal as $dado) {
-                    $key = $dado['semana_do_mes'];
-                    $agrupado[$key][$dado['mes']] = $dado;
+                    $key = $dado->semana_do_mes;
+                    $agrupado[$key][$dado->mes] = $dado;
                 }
 
                 $meses = collect($comparativoSemanal)
@@ -72,7 +72,7 @@
                     <tr>
                         <th>Semana</th>
                         @foreach ($meses as $mes)
-                            <th>{{ str_pad($mes, 2, '0', STR_PAD_LEFT) }}/{{ $comparativoSemanal[0]['ano'] }}</th>
+                            <th>{{ str_pad($mes, 2, '0', STR_PAD_LEFT) }}/{{ $comparativoSemanal[0]->ano }}</th>
                         @endforeach
                         <th>Diferença (R$)</th>
                         <th>Variação (%)</th>
@@ -83,7 +83,7 @@
                         @php
                             $valoresMes = [];
                             foreach ($meses as $mes) {
-                                $valoresMes[$mes] = isset($valores[$mes]) ? (float) $valores[$mes]['faturamento'] : 0;
+                                $valoresMes[$mes] = isset($valores[$mes]) ? (float) $valores[$mes]->faturamento : 0;
                             }
 
                             $mesAtual = $meses[0];
