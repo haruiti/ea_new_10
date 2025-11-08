@@ -20,22 +20,15 @@
 
         <div class="card-body">
 
-            {{-- === DEBUG TEMPORÁRIO === --}}
-            <pre style="background:#111;color:#0f0;padding:10px;font-size:11px;white-space:pre-wrap;">
-DADOS MENSAIS:
-{{ json_encode($dados) }}
-
-DADOS SEMANAIS:
-{{ json_encode($comparativoSemanal) }}
-            </pre>
-
             {{-- === CARDS DE RESUMO === --}}
             <div class="row text-center mb-3">
                 <div class="col-md-3 mb-3">
                     <div class="card border-success shadow-sm">
                         <div class="card-body">
                             <h6 class="text-success">💰 Entradas</h6>
-                            <h3 class="fw-bold text-success">R$ {{ number_format($ultimoMes['entrada'] ?? 0, 2, ',', '.') }}</h3>
+                            <h3 class="fw-bold text-success">
+                                R$ {{ number_format($ultimoMes['entrada'] ?? 0, 2, ',', '.') }}
+                            </h3>
                         </div>
                     </div>
                 </div>
@@ -43,7 +36,9 @@ DADOS SEMANAIS:
                     <div class="card border-danger shadow-sm">
                         <div class="card-body">
                             <h6 class="text-danger">📉 Saídas</h6>
-                            <h3 class="fw-bold text-danger">R$ {{ number_format($ultimoMes['saida'] ?? 0, 2, ',', '.') }}</h3>
+                            <h3 class="fw-bold text-danger">
+                                R$ {{ number_format($ultimoMes['saida'] ?? 0, 2, ',', '.') }}
+                            </h3>
                         </div>
                     </div>
                 </div>
@@ -93,15 +88,10 @@ DADOS SEMANAIS:
                 </div>
             </div>
 
-            {{-- === GRÁFICO DE FATURAMENTO SEMANAL === --}}
+            {{-- === FATURAMENTO SEMANAL === --}}
             <hr class="my-4">
             <h4 class="text-center">📈 Faturamento Semanal (Últimos 3 Meses)</h4>
             <canvas id="weeklyChart" height="120"></canvas>
-
-            {{-- === GRÁFICO DE TESTE PARA DIAGNÓSTICO === --}}
-            <hr class="my-4">
-            <h4 class="text-center">🧪 Teste de Carregamento do Chart.js</h4>
-            <canvas id="testChart" height="100"></canvas>
 
             {{-- === TABELA DETALHADA === --}}
             <hr class="my-4">
@@ -110,9 +100,9 @@ DADOS SEMANAIS:
                     <thead class="table-light">
                         <tr>
                             <th>Mês/Ano</th>
-                            <th>💰 Entradas</th>
-                            <th>📉 Saídas</th>
-                            <th>📊 Saldo</th>
+                            <th>💰 Entradas (R$)</th>
+                            <th>📉 Saídas (R$)</th>
+                            <th>📊 Saldo (R$)</th>
                             <th>🧠 Consultas</th>
                             <th>💼 Tratamentos</th>
                             <th>🌀 Hipnose</th>
@@ -156,95 +146,78 @@ DADOS SEMANAIS:
                     </tbody>
                 </table>
             </div>
+
         </div>
     </div>
 </div>
 
 {{-- === CHARTS === --}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    console.log("✅ DOM pronto — inicializando gráficos...");
+    console.log("✅ Charts carregados com sucesso");
 
     // Dados principais
     const meses = @json(array_column($dados, 'data'));
-    const entradas = @json(array_column($dados, 'entrada'));
-    const saidas = @json(array_column($dados, 'saida'));
-    const consultas = @json(array_column($dados, 'consulta'));
-    const tratamentos = @json(array_column($dados, 'tratamento'));
-    const hipnoses = @json(array_column($dados, 'sessaohipnose'));
-    const psicanalises = @json(array_column($dados, 'sessaopsicanalise'));
+    const entradas = @json(array_column($dados, 'entrada')).map(v => parseFloat(v));
+    const saidas = @json(array_column($dados, 'saida')).map(v => parseFloat(v));
+    const consultas = @json(array_column($dados, 'consulta')).map(v => parseFloat(v));
+    const tratamentos = @json(array_column($dados, 'tratamento')).map(v => parseFloat(v));
+    const hipnoses = @json(array_column($dados, 'sessaohipnose')).map(v => parseFloat(v));
+    const psicanalises = @json(array_column($dados, 'sessaopsicanalise')).map(v => parseFloat(v));
     const semanal = @json($comparativoSemanal);
 
-    // === Gráfico de Teste (garantir que Chart.js funciona) ===
-    new Chart(document.getElementById('testChart'), {
+    // === Financeiro ===
+    new Chart(document.getElementById('financeChart'), {
         type: 'bar',
         data: {
-            labels: ['Jan', 'Fev', 'Mar'],
-            datasets: [{
-                label: 'Teste Chart.js',
-                data: [10, 20, 15],
-                backgroundColor: ['#007bff', '#28a745', '#ffc107']
-            }]
-        }
+            labels: meses,
+            datasets: [
+                { label: 'Entradas (R$)', data: entradas, backgroundColor: 'rgba(75,192,192,0.7)' },
+                { label: 'Saídas (R$)', data: saidas, backgroundColor: 'rgba(255,99,132,0.7)' }
+            ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
     });
 
-    // === Financeiro (barras) ===
-    if (meses.length) {
-        new Chart(document.getElementById('financeChart'), {
-            type: 'bar',
-            data: {
-                labels: meses,
-                datasets: [
-                    { label: 'Entradas (R$)', data: entradas, backgroundColor: 'rgba(75,192,192,0.7)' },
-                    { label: 'Saídas (R$)', data: saidas, backgroundColor: 'rgba(255,99,132,0.7)' }
-                ]
-            },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-        });
-    }
+    // === Atendimentos ===
+    new Chart(document.getElementById('sessionsChart'), {
+        type: 'line',
+        data: {
+            labels: meses,
+            datasets: [
+                { label: 'Consultas', data: consultas, borderColor: '#007bff', fill: false, tension: 0.3 },
+                { label: 'Tratamentos', data: tratamentos, borderColor: '#28a745', fill: false, tension: 0.3 },
+                { label: 'Hipnose', data: hipnoses, borderColor: '#ffc107', fill: false, tension: 0.3 },
+                { label: 'Psicanálise', data: psicanalises, borderColor: '#6f42c1', fill: false, tension: 0.3 }
+            ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+    });
 
-    // === Atendimentos (linha) ===
-    if (consultas.length) {
-        new Chart(document.getElementById('sessionsChart'), {
-            type: 'line',
-            data: {
-                labels: meses,
-                datasets: [
-                    { label: 'Consultas', data: consultas, borderColor: '#007bff', fill: false },
-                    { label: 'Tratamentos', data: tratamentos, borderColor: '#28a745', fill: false },
-                    { label: 'Hipnose', data: hipnoses, borderColor: '#ffc107', fill: false },
-                    { label: 'Psicanálise', data: psicanalises, borderColor: '#6f42c1', fill: false }
-                ]
-            },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-        });
-    }
-
-    // === Pizza (último mês) ===
+    // === Pizza ===
     const ultimo = @json($ultimoMes);
-    if (ultimo) {
-        new Chart(document.getElementById('sessionsPieChart'), {
-            type: 'pie',
-            data: {
-                labels: ['Consultas', 'Tratamentos', 'Hipnose', 'Psicanálise'],
-                datasets: [{
-                    data: [
-                        ultimo.consulta ?? 0,
-                        ultimo.tratamento ?? 0,
-                        ultimo.sessaohipnose ?? 0,
-                        ultimo.sessaopsicanalise ?? 0
-                    ],
-                    backgroundColor: ['#007bff', '#28a745', '#ffc107', '#6f42c1']
-                }]
-            }
-        });
-    }
+    new Chart(document.getElementById('sessionsPieChart'), {
+        type: 'pie',
+        data: {
+            labels: ['Consultas', 'Tratamentos', 'Hipnose', 'Psicanálise'],
+            datasets: [{
+                data: [
+                    parseFloat(ultimo.consulta ?? 0),
+                    parseFloat(ultimo.tratamento ?? 0),
+                    parseFloat(ultimo.sessaohipnose ?? 0),
+                    parseFloat(ultimo.sessaopsicanalise ?? 0)
+                ],
+                backgroundColor: ['#007bff', '#28a745', '#ffc107', '#6f42c1']
+            }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } } }
+    });
 
     // === Faturamento semanal ===
     if (semanal.length) {
-        const labelsSemanais = semanal.map(s => `${s.semana_inicio}→${s.semana_fim}`).reverse();
-        const faturamentoSemanal = semanal.map(s => s.faturamento).reverse();
+        const labelsSemanais = semanal.map(s => `${s.semana_inicio}→${s.semana_fim}`);
+        const faturamento = semanal.map(s => parseFloat(s.faturamento));
 
         new Chart(document.getElementById('weeklyChart'), {
             type: 'line',
@@ -252,14 +225,18 @@ document.addEventListener("DOMContentLoaded", function() {
                 labels: labelsSemanais,
                 datasets: [{
                     label: 'Faturamento (R$)',
-                    data: faturamentoSemanal,
+                    data: faturamento,
                     borderColor: '#17a2b8',
-                    backgroundColor: 'rgba(23,162,184,0.2)',
+                    backgroundColor: 'rgba(23,162,184,0.3)',
                     fill: true,
                     tension: 0.4
                 }]
             },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true } }
+            }
         });
     }
 });
