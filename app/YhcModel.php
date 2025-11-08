@@ -384,4 +384,26 @@ class YhcModel extends Model
         }
     }
 
+
+
+    public function getAtendimentosMensais()
+    {
+        try {
+            return DB::select("
+                SELECT 
+                    CONCAT(MONTH(v.data), '/', YEAR(v.data)) AS mesano,
+                    COUNT(v.id) AS total,
+                    SUM(CASE WHEN v.pacote_id = 1 THEN 1 ELSE 0 END) AS consulta,
+                    SUM(CASE WHEN v.pacote_id NOT IN (1, 5, 7) THEN 1 ELSE 0 END) AS tratamento,
+                    SUM(CASE WHEN v.pacote_id = 5 THEN 1 ELSE 0 END) AS hipnose,
+                    SUM(CASE WHEN v.pacote_id = 7 THEN 1 ELSE 0 END) AS psicanalise
+                FROM yhc_venda v
+                GROUP BY mesano
+                ORDER BY YEAR(v.data) DESC, MONTH(v.data) DESC
+            ");
+        } catch (\Exception $e) {
+            return "Erro: " . $e->getMessage() . " | linha: " . $e->getLine() . " | arquivo: " . $e->getFile();
+        }
+    }
+
 }

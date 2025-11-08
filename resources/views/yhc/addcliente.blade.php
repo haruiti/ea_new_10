@@ -6,9 +6,10 @@
         <h4 class="modal-title" id="modaladdclienteLabel">
           <i class="fas fa-user-plus"></i> Novo Cliente
         </h4>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fechar">
-          <span aria-hidden="true">&times;</span>
-        </button>
+            <button type="button" class="btn btn-danger" data-dismiss="modal">
+                Fechar <i class="fas fa-window-close"></i>
+            </button>
+
       </div>
 
       <div class="modal-body">

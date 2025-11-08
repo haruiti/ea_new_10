@@ -228,86 +228,96 @@ class Yhc extends Controller
         }
 
     // Dashboard
-    public function dashboard(){
+    public function dashboard()
+    {
+        $vendas = $this->YhcModel->getVendaMes();
+        $despesas = $this->YhcModel->getDespesaMes();
+        $datas = $this->YhcModel->getDatas();
+        $consultas = $this->YhcModel->getConsultas();
+        $atendimentos = $this->YhcModel->getAtendimentosMensais(); // novo método
 
-        $vendas=$this->YhcModel->getVendaMes();
-    
-        $despesas=$this->YhcModel->getDespesaMes();
-    
-        $datas=$this->YhcModel->getDatas();
-       
-        $consultas=$this->YhcModel->getConsultas();        
-
-        $dados1=[];
-        foreach($vendas as $venda){
-            foreach($despesas as $despesa){
-                if($venda->ano==$despesa->ano && $venda->mes==$despesa->mes){
-                    $dados1[]=array(
-                        "data"=> $despesa->mesano,
-                        "entrada"=>$venda->total,
-                        "marketing"=>$despesa->marketing,
-                        "transporte"=>$despesa->transporte,
-                        "sala"=>$despesa->sala,
-                        "alimentacao"=>$despesa->alimentacao,
-                        "material"=>$despesa->material,
-                        "saida"=>$despesa->total,
-                        "saldo"=>$venda->total-$despesa->total
-                    );
-                }
-            }
-
-        }
-
-        $dados2=[];
-        foreach ($dados1 as $venda){
-            foreach ($consultas as $consulta){
-                if($venda['data']==$consulta->mesano ){
-                    $dados2[]=array(
-                        "data"=> $venda['data'],
-                        "entrada"=>$venda['entrada'],
-                        "marketing"=>$venda['marketing'],
-                        "transporte"=>$venda['transporte'],
-                        "sala"=>$venda['sala'],
-                        "alimentacao"=>$venda['alimentacao'],
-                        "material"=>$venda['material'],
-                        "saida"=>$venda['saida'],
-                        "saldo"=>$venda['saldo'],
-                        "consulta"=>isset($consulta->consulta)?$consulta->consulta:null,
-                        "tratamento"=>isset($consulta->tratamento)?$consulta->tratamento:null,
-                        "sessaohipnose"=>isset($consulta->sessaohipnose)?$consulta->sessaohipnose:null,
-                        "sessaopsicanalise"=>isset($consulta->sessaopsicanalise)?$consulta->sessaopsicanalise:null,
-                    );
+        $dados1 = [];
+        foreach ($vendas as $venda) {
+            foreach ($despesas as $despesa) {
+                if ($venda->ano == $despesa->ano && $venda->mes == $despesa->mes) {
+                    $dados1[] = [
+                        "data" => $despesa->mesano,
+                        "entrada" => $venda->total,
+                        "marketing" => $despesa->marketing,
+                        "transporte" => $despesa->transporte,
+                        "sala" => $despesa->sala,
+                        "alimentacao" => $despesa->alimentacao,
+                        "material" => $despesa->material,
+                        "saida" => $despesa->total,
+                        "saldo" => $venda->total - $despesa->total
+                    ];
                 }
             }
         }
 
-
-        $dados=[];
-        foreach($datas as $data){
-            foreach($dados2 as $dado1){
-                if ($dado1['data']==$data->mesano){
-                    $dados[]=array(
-                        "data"=> $data->mesano,
-                        "entrada"=>$dado1['entrada'],
-                        "marketing"=>$dado1['marketing'],
-                        "transporte"=>$dado1['transporte'],
-                        "sala"=>$dado1['sala'],
-                        "alimentacao"=>$dado1['alimentacao'],
-                        "material"=>$dado1['material'],
-                        "saida"=>$dado1['saida'],
-                        "saldo"=>$dado1['saldo'],
-                        "consulta"=>isset($dado1['consulta'])?$dado1['consulta']:null,
-                        "tratamento"=>isset($dado1['tratamento'])?$dado1['tratamento']:null,
-                        "sessaohipnose"=>isset($dado1['sessaohipnose'])?$dado1['sessaohipnose']:null,
-                        "sessaopsicanalise"=>isset($dado1['sessaopsicanalise'])?$dado1['sessaopsicanalise']:null
-                    );
+        // 🔹 Une com as consultas e sessões (mantendo sua estrutura antiga)
+        $dados2 = [];
+        foreach ($dados1 as $venda) {
+            foreach ($consultas as $consulta) {
+                if ($venda['data'] == $consulta->mesano) {
+                    $dados2[] = array_merge($venda, [
+                        "consulta" => $consulta->consulta ?? 0,
+                        "tratamento" => $consulta->tratamento ?? 0,
+                        "sessaohipnose" => $consulta->sessaohipnose ?? 0,
+                        "sessaopsicanalise" => $consulta->sessaopsicanalise ?? 0,
+                    ]);
                 }
             }
         }
 
-        // usort($dados, array($this, "sortByOrder"));
+        // 🔹 Acrescenta os novos indicadores de atendimento (do novo método)
+        $dadosCompletos = [];
+        foreach ($dados2 as $item) {
+            $extra = collect($atendimentos)->firstWhere('mesano', $item['data']);
+            $dadosCompletos[] = array_merge($item, [
+                'total_atendimentos' => $extra->total ?? 0,
+                'hipnose' => $extra->hipnose ?? 0,
+                'psicanalise' => $extra->psicanalise ?? 0,
+            ]);
+        }
 
-        return view("yhc/dashboardTable")->with('dados', $dados);
+        // 🔹 Organiza na mesma estrutura usada pela view
+        $dados = [];
+        foreach ($datas as $data) {
+            foreach ($dadosCompletos as $dado1) {
+                if ($dado1['data'] == $data->mesano) {
+                    $dados[] = [
+                        "data" => $data->mesano,
+                        "entrada" => $dado1['entrada'],
+                        "marketing" => $dado1['marketing'],
+                        "transporte" => $dado1['transporte'],
+                        "sala" => $dado1['sala'],
+                        "alimentacao" => $dado1['alimentacao'],
+                        "material" => $dado1['material'],
+                        "saida" => $dado1['saida'],
+                        "saldo" => $dado1['saldo'],
+                        "consulta" => $dado1['consulta'],
+                        "tratamento" => $dado1['tratamento'],
+                        "sessaohipnose" => $dado1['sessaohipnose'],
+                        "sessaopsicanalise" => $dado1['sessaopsicanalise'],
+                        "total_atendimentos" => $dado1['total_atendimentos'] ?? 0
+                    ];
+                }
+            }
+        }
+
+        // 🔹 Cálculo adicional: crescimento e taxa de conversão
+        $crescimento = [];
+        for ($i = 1; $i < count($dados); $i++) {
+            $anterior = $dados[$i - 1]['total_atendimentos'] ?? 0;
+            $atual = $dados[$i]['total_atendimentos'] ?? 0;
+            $crescimento[$dados[$i]['data']] = $anterior > 0 ? round((($atual - $anterior) / $anterior) * 100, 1) : 0;
+        }
+
+        // 🔹 Envia tudo para a view
+        return view("yhc/dashboardTable")
+            ->with('dados', $dados)
+            ->with('crescimento', $crescimento);
     }
 
 
