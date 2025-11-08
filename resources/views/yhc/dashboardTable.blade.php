@@ -96,6 +96,112 @@
                     <canvas id="sessionsPieChart" height="180"></canvas>
                 </div>
             </div>
+            <hr class="my-4">
+
+<div class="row">
+    <div class="col-md-12">
+        <h4 class="text-center mb-3">📈 Comparativo Semanal — Consultas, Sessões e Faturamento</h4>
+        <canvas id="weeklyChart" height="130"></canvas>
+    </div>
+</div>
+
+<div class="table-responsive mt-4">
+    <table class="table table-striped text-center align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Semana</th>
+                <th>Consultas</th>
+                <th>Hipnose</th>
+                <th>Psicanálise</th>
+                <th>Total</th>
+                <th>Faturamento (R$)</th>
+                <th>Variação Atend.</th>
+                <th>Variação Fatur.</th>
+            </tr>
+        </thead>
+        <tbody>
+            @php
+                $prevAtend = null;
+                $prevFat = null;
+            @endphp
+
+            @foreach(array_reverse($analiseSemanal) as $semana)
+                @php
+                    $varAtend = $prevAtend ? (($semana->total_atendimentos - $prevAtend) / $prevAtend) * 100 : null;
+                    $varFat = $prevFat ? (($semana->faturamento - $prevFat) / $prevFat) * 100 : null;
+                    $prevAtend = $semana->total_atendimentos;
+                    $prevFat = $semana->faturamento;
+                @endphp
+                <tr>
+                    <td><strong>{{ $semana->semana_inicio }} → {{ $semana->semana_fim }}</strong></td>
+                    <td>{{ $semana->consultas }}</td>
+                    <td>{{ $semana->hipnoses }}</td>
+                    <td>{{ $semana->psicanalises }}</td>
+                    <td class="fw-bold">{{ $semana->total_atendimentos }}</td>
+                    <td class="text-success fw-bold">{{ number_format($semana->faturamento, 2, ',', '.') }}</td>
+                    <td>
+                        @if(!is_null($varAtend))
+                            @if($varAtend >= 0)
+                                <span class="text-success fw-bold">+{{ number_format($varAtend, 1) }}%</span>
+                            @else
+                                <span class="text-danger fw-bold">{{ number_format($varAtend, 1) }}%</span>
+                            @endif
+                        @endif
+                    </td>
+                    <td>
+                        @if(!is_null($varFat))
+                            @if($varFat >= 0)
+                                <span class="text-success fw-bold">+{{ number_format($varFat, 1) }}%</span>
+                            @else
+                                <span class="text-danger fw-bold">{{ number_format($varFat, 1) }}%</span>
+                            @endif
+                        @endif
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const semanal = @json($analiseSemanal);
+
+    const labels = semanal.map(s => `${s.semana_inicio}→${s.semana_fim}`).reverse();
+    const consultas = semanal.map(s => s.consultas).reverse();
+    const hipnoses = semanal.map(s => s.hipnoses).reverse();
+    const psicanalises = semanal.map(s => s.psicanalises).reverse();
+    const faturamento = semanal.map(s => s.faturamento).reverse();
+
+    new Chart(document.getElementById('weeklyChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: 'Consultas', data: consultas, borderColor: '#007bff', tension: 0.3, fill: false },
+                { label: 'Hipnose Avulsa', data: hipnoses, borderColor: '#ffc107', tension: 0.3, fill: false },
+                { label: 'Psicanálise', data: psicanalises, borderColor: '#6f42c1', tension: 0.3, fill: false },
+                { 
+                    label: 'Faturamento (R$)', 
+                    data: faturamento.map(f => f / 100), // normaliza escala
+                    borderColor: '#28a745', 
+                    borderDash: [6,4],
+                    tension: 0.3,
+                    fill: false 
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Atendimentos / (Faturamento ÷ 100)' } }
+            }
+        }
+    });
+});
+</script>
+
 
             {{-- === TABELA DETALHADA === --}}
             <div class="table-responsive">

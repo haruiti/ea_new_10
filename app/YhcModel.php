@@ -406,4 +406,35 @@ class YhcModel extends Model
         }
     }
 
+    public function getAnaliseSemanal()
+    {
+        return DB::select("
+            SELECT 
+                YEARWEEK(v.data, 1) AS ano_semana,
+                DATE_FORMAT(MIN(v.data), '%d/%m') AS semana_inicio,
+                DATE_FORMAT(MAX(v.data), '%d/%m') AS semana_fim,
+                
+                -- Faturamento semanal
+                SUM(v.valor_pago) AS faturamento,
+                
+                -- Novas consultas (pacote_id = 1)
+                SUM(CASE WHEN v.pacote_id = 1 THEN 1 ELSE 0 END) AS consultas,
+                
+                -- Sessões avulsas de hipnose (pacote_id = 5)
+                SUM(CASE WHEN v.pacote_id = 5 THEN 1 ELSE 0 END) AS hipnoses,
+                
+                -- Sessões avulsas de psicanálise (pacote_id = 7)
+                SUM(CASE WHEN v.pacote_id = 7 THEN 1 ELSE 0 END) AS psicanalises,
+                
+                -- Total geral
+                SUM(CASE WHEN v.pacote_id IN (1,5,7) THEN 1 ELSE 0 END) AS total_atendimentos
+
+            FROM yhc_venda v
+            WHERE v.pacote_id IN (1,5,7)
+            GROUP BY ano_semana
+            ORDER BY ano_semana DESC
+        ");
+    }
+
+
 }
