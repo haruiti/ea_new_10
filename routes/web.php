@@ -14,6 +14,10 @@ use Spatie\GoogleCalendar\Event;
 use App\Http\Controllers\TrackingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Http\Controllers\ClienteController;
+
+Route::post('/cliente/salvar', [ClienteController::class, 'store'])->name('cliente.salvar');
+
 
 // 🔹 Rota original (redirect para WhatsApp)
 Route::get('/go-whatsapp', [TrackingController::class, 'redirectToWhatsApp'])->name('go.whatsapp');
