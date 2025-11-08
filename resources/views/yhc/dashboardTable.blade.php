@@ -26,19 +26,19 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($dadosMensais as $item)
+                    @foreach ($dados as $item)
                         <tr>
-                            <td><strong>{{ $item->data }}</strong></td>
-                            <td class="text-success">R$ {{ number_format($item->entrada, 2, ',', '.') }}</td>
-                            <td class="text-danger">R$ {{ number_format($item->saida, 2, ',', '.') }}</td>
-                            <td class="{{ $item->saldo >= 0 ? 'text-success' : 'text-danger' }}">
-                                R$ {{ number_format($item->saldo, 2, ',', '.') }}
+                            <td><strong>{{ $item['data'] }}</strong></td>
+                            <td class="text-success">R$ {{ number_format($item['entrada'], 2, ',', '.') }}</td>
+                            <td class="text-danger">R$ {{ number_format($item['saida'], 2, ',', '.') }}</td>
+                            <td class="{{ $item['saldo'] >= 0 ? 'text-success' : 'text-danger' }}">
+                                R$ {{ number_format($item['saldo'], 2, ',', '.') }}
                             </td>
-                            <td>{{ $item->consulta }}</td>
-                            <td>{{ $item->tratamento }}</td>
-                            <td>{{ $item->sessaohipnose }}</td>
-                            <td>{{ $item->sessaopsicanalise }}</td>
-                            <td><strong>{{ $item->total_atendimentos }}</strong></td>
+                            <td>{{ $item['consulta'] }}</td>
+                            <td>{{ $item['tratamento'] }}</td>
+                            <td>{{ $item['sessaohipnose'] }}</td>
+                            <td>{{ $item['sessaopsicanalise'] }}</td>
+                            <td><strong>{{ $item['total_atendimentos'] }}</strong></td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -54,13 +54,17 @@
         <div class="card-body p-0">
             @php
                 $agrupado = [];
-                foreach ($dadosSemanais as $dado) {
-                    $key = $dado->semana_do_mes;
-                    $agrupado[$key][$dado->mes] = $dado;
+                foreach ($comparativoSemanal as $dado) {
+                    $key = $dado['semana_do_mes'];
+                    $agrupado[$key][$dado['mes']] = $dado;
                 }
 
-                // Pegar os 3 meses mais recentes
-                $meses = collect($dadosSemanais)->pluck('mes')->unique()->sortDesc()->take(3)->values();
+                $meses = collect($comparativoSemanal)
+                    ->pluck('mes')
+                    ->unique()
+                    ->sortDesc()
+                    ->take(3)
+                    ->values();
             @endphp
 
             <table class="table table-striped table-hover mb-0 text-center align-middle">
@@ -68,7 +72,7 @@
                     <tr>
                         <th>Semana</th>
                         @foreach ($meses as $mes)
-                            <th>{{ str_pad($mes, 2, '0', STR_PAD_LEFT) }}/{{ $dadosSemanais[0]->ano }}</th>
+                            <th>{{ str_pad($mes, 2, '0', STR_PAD_LEFT) }}/{{ $comparativoSemanal[0]['ano'] }}</th>
                         @endforeach
                         <th>Diferença (R$)</th>
                         <th>Variação (%)</th>
@@ -79,10 +83,9 @@
                         @php
                             $valoresMes = [];
                             foreach ($meses as $mes) {
-                                $valoresMes[$mes] = isset($valores[$mes]) ? (float) $valores[$mes]->faturamento : 0;
+                                $valoresMes[$mes] = isset($valores[$mes]) ? (float) $valores[$mes]['faturamento'] : 0;
                             }
 
-                            // Comparar o mês mais recente com o anterior
                             $mesAtual = $meses[0];
                             $mesAnterior = $meses[1] ?? null;
 
