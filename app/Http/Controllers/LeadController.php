@@ -7,9 +7,22 @@ use App\Models\Lead;
 use App\Models\LeadTracking;
 use Illuminate\Support\Str;
 
-
 class LeadController extends Controller
 {
+    /**
+     * Gera um código único de lead sem colisão.
+     */
+    private function generateUniqueLeadCode($len = 8)
+    {
+        do {
+            $code = strtoupper(Str::random($len));
+            $existsInLeads = Lead::where('lead_code', $code)->exists();
+            $existsInTracking = LeadTracking::where('lead_code', $code)->exists();
+        } while ($existsInLeads || $existsInTracking);
+
+        return $code;
+    }
+
     /**
      * Exibe a lista de leads
      */
@@ -46,18 +59,19 @@ class LeadController extends Controller
                          ->with('success', 'Lead criado com sucesso!');
     }
 
+    /**
+     * API usada por páginas externas para salvar lead
+     */
     public function apiStore(Request $request)
     {
-
-        // Cabeçalhos CORS
         header("Access-Control-Allow-Origin: *");
         header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
         header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-        // Se for uma requisição OPTIONS (pré-flight)
         if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
             exit(0);
         }
+
         $validated = $request->validate([
             'name'       => 'required|string|max:255',
             'email'      => 'nullable|email|max:255',
@@ -66,17 +80,19 @@ class LeadController extends Controller
             'lead_code'  => 'nullable|string|max:20',
         ]);
 
-        $lead = Lead::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'] ?? null,
-            'phone' => $validated['phone'] ?? null,
-            'notes' => $validated['message'] ?? null,
-            'source' => 'landing_page',
-            'lead_code' => $validated['lead_code'] ?? null,
-        ]);
+        $lead_code = $validated['lead_code'] ?? $this->generateUniqueLeadCode();
 
-        // Aqui é onde o bot pode ser acionado (exemplo)
-        // event(new NewLeadCreated($lead));
+        $lead = Lead::updateOrCreate(
+            ['lead_code' => $lead_code],
+            [
+                'name' => $validated['name'],
+                'email' => $validated['email'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+                'notes' => $validated['message'] ?? null,
+                'source' => 'landing_page',
+                'status' => 'novo',
+            ]
+        );
 
         return response()->json([
             'success' => true,
@@ -84,7 +100,6 @@ class LeadController extends Controller
             'data' => $lead,
         ]);
     }
-
 
     /**
      * Exibe os detalhes de um lead
@@ -142,22 +157,21 @@ class LeadController extends Controller
     // =========================================================
     public function obterOuCriar(Request $request)
     {
-        $phone = preg_replace('/\D/', '', $request->phone); // remove caracteres não numéricos
+        $phone = preg_replace('/\D/', '', $request->phone);
 
         if (!$phone) {
             return response()->json(['error' => 'Número de telefone inválido.'], 400);
         }
 
-        // Busca lead existente
         $lead = Lead::where('phone', $phone)->first();
 
-        // Cria caso não exista
         if (!$lead) {
             $lead = Lead::create([
                 'name'   => $request->name ?? 'Cliente WhatsApp',
                 'phone'  => $phone,
                 'source' => 'WhatsApp Bot',
                 'status' => 'novo',
+                'lead_code' => $this->generateUniqueLeadCode(),
             ]);
         }
 
@@ -173,10 +187,8 @@ class LeadController extends Controller
 
     public function porNumero($numero)
     {
-        // Remove tudo que não for número
         $numeroLimpo = preg_replace('/\D/', '', $numero);
 
-        // Busca qualquer lead cujo número (também limpo) contenha a sequência
         $lead = Lead::whereRaw("REGEXP_REPLACE(phone, '[^0-9]', '') LIKE ?", ["%{$numeroLimpo}%"])
                     ->first();
 
@@ -187,86 +199,14 @@ class LeadController extends Controller
         return response()->json($lead);
     }
 
-
-    public function corrigirNomesImportados()
-    {
-        $leads = Lead::where('name', 'Lead importado')->get();
-        $corrigidos = 0;
-
-        foreach ($leads as $lead) {
-            $primeiraConversa = $lead->conversas()->orderBy('created_at', 'asc')->first();
-            if (!$primeiraConversa) continue;
-
-            $nome = $this->extrairNomePossivel($primeiraConversa->mensagem, $primeiraConversa->dados_extras['chatName'] ?? '');
-            if ($nome && $nome !== 'Lead importado') {
-                $lead->name = $nome;
-                $lead->save();
-                $corrigidos++;
-            }
-        }
-
-        return response()->json([
-            'status' => 'ok',
-            'corrigidos' => $corrigidos,
-        ]);
-    }
-
-    private function extrairNomePossivel($mensagem, $chatName)
-    {
-        // 1️⃣ Usa chatName se não for número
-        if ($chatName && !preg_match('/^\+?\d+$/', $chatName)) {
-            return trim($chatName);
-        }
-
-        // 2️⃣ Tenta achar nome no texto
-        if (preg_match('/(?:sou|meu nome é|aqui é|quem fala é)\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i', $mensagem, $m)) {
-            return trim($m[1]);
-        }
-
-        return 'Lead importado';
-    }
-
-    public function updateName(Request $request)
-    {
-        $lead = Lead::where('phone', $request->phone)->first();
-
-        if (!$lead) {
-            return response()->json(['error' => 'Lead não encontrado'], 404);
-        }
-
-        $lead->name = $request->name;
-        $lead->save();
-
-        return response()->json(['success' => true]);
-    }
-
-    public function updateByNumber($phone, Request $request)
-    {
-        // remove qualquer caractere não numérico do telefone
-        $cleanPhone = preg_replace('/\D/', '', $phone);
-
-        $lead = \App\Models\Lead::where('phone', 'like', "%$cleanPhone%")->first();
-
-        if (!$lead) {
-            return response()->json(['message' => 'Lead não encontrado para o número informado.'], 404);
-        }
-
-        $lead->name = $request->input('name', $lead->name);
-        $lead->save();
-
-        return response()->json(['message' => 'Nome atualizado com sucesso!', 'lead' => $lead]);
-    }
-
     // =========================================================
     // 🌐 API — Recebe leads vindos do site (formulário HTML)
     // =========================================================
     public function receberDoFormulario(Request $request)
     {
         try {
-            // ✅ Garante um lead_code (caso o front não envie)
-            $lead_code = $request->input('lead_code') ?? strtoupper(Str::random(8));
+            $lead_code = $request->input('lead_code') ?? $this->generateUniqueLeadCode();
 
-            // ✅ Validação dos campos do formulário
             $validated = $request->validate([
                 'name' => 'required|string|min:3',
                 'email' => 'nullable|email',
@@ -276,8 +216,7 @@ class LeadController extends Controller
 
             $source = $request->input('source') ?? 'Formulário do Site';
 
-            // ✅ Cria ou atualiza lead principal
-            \App\Models\Lead::updateOrCreate(
+            Lead::updateOrCreate(
                 ['lead_code' => $lead_code],
                 [
                     'name' => $validated['name'],
@@ -289,25 +228,22 @@ class LeadController extends Controller
                 ]
             );
 
-            // ✅ Cria ou atualiza o tracking
-            if (class_exists(\App\Models\LeadTracking::class)) {
-                \App\Models\LeadTracking::updateOrCreate(
-                    ['lead_code' => $lead_code],
-                    [
-                        'gclid' => $request->input('gclid'),
-                        'utm_source' => $request->input('utm_source'),
-                        'utm_medium' => $request->input('utm_medium'),
-                        'utm_campaign' => $request->input('utm_campaign'),
-                        'utm_term' => $request->input('utm_term'),
-                        'utm_content' => $request->input('utm_content'),
-                        'ip_address' => $request->ip(),
-                        'user_agent' => $request->userAgent(),
-                        'referrer' => $request->headers->get('referer'),
-                        'source' => $source,
-                        'clicked_whatsapp' => false,
-                    ]
-                );
-            }
+            LeadTracking::updateOrCreate(
+                ['lead_code' => $lead_code],
+                [
+                    'gclid' => $request->input('gclid'),
+                    'utm_source' => $request->input('utm_source'),
+                    'utm_medium' => $request->input('utm_medium'),
+                    'utm_campaign' => $request->input('utm_campaign'),
+                    'utm_term' => $request->input('utm_term'),
+                    'utm_content' => $request->input('utm_content'),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'referrer' => $request->headers->get('referer'),
+                    'source' => $source,
+                    'clicked_whatsapp' => false,
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -321,7 +257,10 @@ class LeadController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Erro ao salvar lead do formulário: ' . $e->getMessage());
+            \Log::error('Erro ao salvar lead do formulário: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'input' => $request->all(),
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Erro interno ao salvar lead.',
@@ -330,10 +269,9 @@ class LeadController extends Controller
         }
     }
 
-
     public function goWhatsapp()
     {
-        $lead_code = strtoupper(Str::random(8));
+        $lead_code = $this->generateUniqueLeadCode();
 
         return response()->json([
             'success' => true,
@@ -351,7 +289,6 @@ class LeadController extends Controller
 
             $source = $request->input('source') ?? 'WhatsApp';
 
-            // ✅ Atualiza ou cria tracking
             LeadTracking::updateOrCreate(
                 ['lead_code' => $lead_code],
                 [
@@ -369,7 +306,6 @@ class LeadController extends Controller
                 ]
             );
 
-            // ✅ Registra ou atualiza lead principal também (sem duplicar)
             Lead::updateOrCreate(
                 ['lead_code' => $lead_code],
                 [
@@ -393,14 +329,11 @@ class LeadController extends Controller
         }
     }
 
-
     public function salvarLead(Request $request)
     {
         try {
-            // ✅ Se não houver lead_code, gera automaticamente
-            $lead_code = $request->input('lead_code') ?? strtoupper(Str::random(8));
+            $lead_code = $request->input('lead_code') ?? $this->generateUniqueLeadCode();
 
-            // ✅ Validação básica
             $request->validate([
                 'name' => 'required|string|min:2',
                 'email' => 'nullable|email',
@@ -410,8 +343,7 @@ class LeadController extends Controller
 
             $source = $request->input('source') ?? 'Formulário do Site';
 
-            // ✅ Atualiza ou cria no leads_tracking
-            \App\Models\LeadTracking::updateOrCreate(
+            LeadTracking::updateOrCreate(
                 ['lead_code' => $lead_code],
                 [
                     'gclid' => $request->input('gclid'),
@@ -427,8 +359,7 @@ class LeadController extends Controller
                 ]
             );
 
-            // ✅ Atualiza ou cria no leads principal
-            \App\Models\Lead::updateOrCreate(
+            Lead::updateOrCreate(
                 ['lead_code' => $lead_code],
                 [
                     'name' => $request->input('name'),
@@ -445,7 +376,10 @@ class LeadController extends Controller
                 'message' => "✅ Lead salvo com sucesso! (Código: {$lead_code})",
             ]);
         } catch (\Exception $e) {
-            \Log::error("Erro ao salvar lead do formulário: " . $e->getMessage());
+            \Log::error("Erro ao salvar lead do formulário: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'input' => $request->all(),
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Erro interno ao salvar lead.',
@@ -453,9 +387,4 @@ class LeadController extends Controller
             ], 500);
         }
     }
-
-
-
-
-
 }

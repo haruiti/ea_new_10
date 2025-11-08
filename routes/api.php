@@ -25,7 +25,6 @@ Route::put('/leads/updateByNumber/{numero}', [LeadController::class, 'updateByNu
 Route::put('/leads/update-name', [LeadController::class, 'updateName']);
 Route::post('/receber-lead', [LeadController::class, 'receberDoFormulario']);
 Route::post('/leads', [LeadController::class, 'apiStore']);
-Route::post('/receber-lead', [LeadController::class, 'receberDoFormulario']);
 Route::post('/receber-lead-click', [LeadController::class, 'registrarCliqueWhatsApp']);
 
 
