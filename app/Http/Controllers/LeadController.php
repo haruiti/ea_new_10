@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Lead;
+use App\Models\LeadTracking;
+use Illuminate\Support\Str;
+
 
 class LeadController extends Controller
 {
@@ -69,7 +72,7 @@ class LeadController extends Controller
             'phone' => $validated['phone'] ?? null,
             'notes' => $validated['message'] ?? null,
             'source' => 'landing_page',
-            'code' => $validated['lead_code'] ?? null,
+            'lead_code' => $validated['lead_code'] ?? null,
         ]);
 
         // Aqui é onde o bot pode ser acionado (exemplo)
@@ -321,69 +324,116 @@ class LeadController extends Controller
 
     public function registrarCliqueWhatsApp(Request $request)
     {
-
-            // 🔧 Corrige parsing do JSON caso não tenha sido interpretado automaticamente
-        if (empty($request->all())) {
-            $json = json_decode($request->getContent(), true);
-            if (is_array($json)) {
-                $request->merge($json);
-            }
-        }
-        $lead_code = $request->input('lead_code');
-
-        if (!$lead_code) {
-            return response()->json(['success' => false, 'message' => 'Código do lead ausente.'], 400);
-        }
-
         try {
-            // 1️⃣ Busca ou cria o tracking
-            $tracking = \App\Models\LeadTracking::where('lead_code', $lead_code)->first();
-
-            if ($tracking) {
-                $tracking->update([
-                    'clicked_at'   => now(),
-                    'gclid'        => $request->input('gclid'),
-                    'utm_source'   => $request->input('utm_source'),
-                    'utm_medium'   => $request->input('utm_medium'),
-                    'utm_campaign' => $request->input('utm_campaign'),
-                    'utm_term'     => $request->input('utm_term'),
-                    'utm_content'  => $request->input('utm_content'),
-                ]);
-            } else {
-                // 2️⃣ Cria novo tracking completo
-                \App\Models\LeadTracking::create([
-                    'lead_code'    => $lead_code,
-                    'gclid'        => $request->input('gclid'),
-                    'utm_source'   => $request->input('utm_source'),
-                    'utm_medium'   => $request->input('utm_medium'),
-                    'utm_campaign' => $request->input('utm_campaign'),
-                    'utm_term'     => $request->input('utm_term'),
-                    'utm_content'  => $request->input('utm_content'),
-                    'ip_address'   => $request->ip(),
-                    'user_agent'   => $request->userAgent(),
-                    'referrer'     => $request->headers->get('referer'),
-                    'clicked_at'   => now(),
-                ]);
+            $lead_code = $request->input('lead_code');
+            if (!$lead_code) {
+                return response()->json(['success' => false, 'message' => 'Lead code não informado.'], 400);
             }
 
-            // 3️⃣ Garante o lead correspondente
-            $lead = \App\Models\Lead::where('lead_code', $lead_code)->first();
-            if (!$lead) {
-                \App\Models\Lead::create([
-                    'lead_code' => $lead_code,
-                    'name' => 'Lead ' . ucfirst($request->input('utm_source', 'WhatsApp')),
-                    'source' => $request->input('utm_source', 'Botão WhatsApp'),
+            $source = $request->input('source') ?? 'WhatsApp';
+
+            // ✅ Atualiza ou cria tracking
+            LeadTracking::updateOrCreate(
+                ['lead_code' => $lead_code],
+                [
+                    'gclid' => $request->input('gclid'),
+                    'utm_source' => $request->input('utm_source'),
+                    'utm_medium' => $request->input('utm_medium'),
+                    'utm_campaign' => $request->input('utm_campaign'),
+                    'utm_term' => $request->input('utm_term'),
+                    'utm_content' => $request->input('utm_content'),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'referrer' => $request->headers->get('referer'),
+                    'source' => $source,
+                    'clicked_whatsapp' => true,
+                ]
+            );
+
+            // ✅ Registra ou atualiza lead principal também (sem duplicar)
+            Lead::updateOrCreate(
+                ['lead_code' => $lead_code],
+                [
+                    'name' => $request->input('name') ?? 'Lead WhatsApp',
+                    'source' => $source,
                     'status' => 'novo',
-                    'notes' => 'Lead criado automaticamente a partir de clique no botão do WhatsApp.',
-                ]);
-            }
+                ]
+            );
 
-            return response()->json(['success' => true]);
-        } catch (\Throwable $e) {
-            \Log::error('Erro ao registrar clique no WhatsApp: ' . $e->getMessage());
-            return response()->json(['success' => false], 500);
+            return response()->json([
+                'success' => true,
+                'message' => 'Clique de WhatsApp registrado com sucesso.',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Erro ao registrar clique WhatsApp: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno ao registrar clique.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
+
+
+    public function salvarLead(Request $request)
+    {
+        try {
+            // ✅ Validação básica
+            $request->validate([
+                'lead_code' => 'required|string',
+                'name' => 'required|string|min:2',
+                'email' => 'nullable|email',
+                'phone' => 'nullable|string',
+                'message' => 'nullable|string',
+            ]);
+
+            $lead_code = $request->input('lead_code');
+            $source = $request->input('source') ?? 'Formulário do Site';
+
+            // ✅ Atualiza ou cria no leads_tracking
+            LeadTracking::updateOrCreate(
+                ['lead_code' => $lead_code],
+                [
+                    'gclid' => $request->input('gclid'),
+                    'utm_source' => $request->input('utm_source'),
+                    'utm_medium' => $request->input('utm_medium'),
+                    'utm_campaign' => $request->input('utm_campaign'),
+                    'utm_term' => $request->input('utm_term'),
+                    'utm_content' => $request->input('utm_content'),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'referrer' => $request->headers->get('referer'),
+                    'source' => $source,
+                ]
+            );
+
+            // ✅ Atualiza ou cria no leads principal
+            Lead::updateOrCreate(
+                ['lead_code' => $lead_code],
+                [
+                    'name' => $request->input('name'),
+                    'email' => $request->input('email'),
+                    'phone' => $request->input('phone'),
+                    'notes' => $request->input('message'),
+                    'source' => $source,
+                    'status' => 'novo',
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Lead salvo com sucesso!',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Erro ao salvar lead do formulário: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno ao salvar lead.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 
 
 
