@@ -378,32 +378,32 @@ class LeadController extends Controller
     public function salvarLead(Request $request)
     {
         try {
-            // ✅ Validação básica
+            // ✅ Validação básica (agora lead_code é opcional, mas gerado se faltar)
             $request->validate([
-                'lead_code' => 'required|string',
                 'name' => 'required|string|min:2',
                 'email' => 'nullable|email',
                 'phone' => 'nullable|string',
                 'message' => 'nullable|string',
             ]);
 
-            $lead_code = $request->input('lead_code');
+            // ✅ Garante lead_code mesmo se não vier do front
+            $lead_code = $request->input('lead_code') ?: strtoupper(Str::random(8));
             $source = $request->input('source') ?? 'Formulário do Site';
 
             // ✅ Atualiza ou cria no leads_tracking
             LeadTracking::updateOrCreate(
                 ['lead_code' => $lead_code],
                 [
-                    'gclid' => $request->input('gclid'),
-                    'utm_source' => $request->input('utm_source'),
-                    'utm_medium' => $request->input('utm_medium'),
+                    'gclid'        => $request->input('gclid'),
+                    'utm_source'   => $request->input('utm_source'),
+                    'utm_medium'   => $request->input('utm_medium'),
                     'utm_campaign' => $request->input('utm_campaign'),
-                    'utm_term' => $request->input('utm_term'),
-                    'utm_content' => $request->input('utm_content'),
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'referrer' => $request->headers->get('referer'),
-                    'source' => $source,
+                    'utm_term'     => $request->input('utm_term'),
+                    'utm_content'  => $request->input('utm_content'),
+                    'ip_address'   => $request->ip(),
+                    'user_agent'   => $request->userAgent(),
+                    'referrer'     => $request->headers->get('referer'),
+                    'source'       => $source,
                 ]
             );
 
@@ -411,10 +411,10 @@ class LeadController extends Controller
             Lead::updateOrCreate(
                 ['lead_code' => $lead_code],
                 [
-                    'name' => $request->input('name'),
-                    'email' => $request->input('email'),
-                    'phone' => $request->input('phone'),
-                    'notes' => $request->input('message'),
+                    'name'   => $request->input('name'),
+                    'email'  => $request->input('email'),
+                    'phone'  => $request->input('phone'),
+                    'notes'  => $request->input('message'),
                     'source' => $source,
                     'status' => 'novo',
                 ]
@@ -422,17 +422,18 @@ class LeadController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Lead salvo com sucesso!',
+                'message' => "✅ Lead salvo com sucesso! (Código: {$lead_code})",
             ]);
         } catch (\Exception $e) {
             \Log::error("Erro ao salvar lead do formulário: " . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Erro interno ao salvar lead.',
-                'error' => $e->getMessage(),
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
+
 
 
 
