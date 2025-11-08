@@ -21,7 +21,9 @@ class LeadTracking extends Model
         'ip_address',
         'user_agent',
         'referrer',
-        'clicked_at',
+        'source',
+        'clicked_whatsapp',
     ];
+
 }
 
