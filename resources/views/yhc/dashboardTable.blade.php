@@ -1,248 +1,121 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid mt-4">
+<div class="container-fluid">
 
-    {{-- === HEADER === --}}
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">📊 Painel Geral — Yamato Hipnose Clínica</h4>
-            <span class="fw-light">Atualizado em {{ date('d/m/Y H:i') }}</span>
+    <h4 class="mb-4 fw-bold">📊 Painel de Controle Financeiro</h4>
+
+    {{-- DADOS MENSAIS --}}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Análise Mensal</h5>
         </div>
-
-        @php
-            $ultimoMes = $dados[0] ?? null;
-            $totalAtendimentos = ($ultimoMes['consulta'] ?? 0)
-                + ($ultimoMes['tratamento'] ?? 0)
-                + ($ultimoMes['sessaohipnose'] ?? 0)
-                + ($ultimoMes['sessaopsicanalise'] ?? 0);
-        @endphp
-
-        <div class="card-body">
-
-            {{-- === CARDS DE RESUMO === --}}
-            <div class="row text-center mb-3">
-                <div class="col-md-3 mb-3">
-                    <div class="card border-success shadow-sm">
-                        <div class="card-body">
-                            <h6 class="text-success">💰 Entradas</h6>
-                            <h3 class="fw-bold text-success">
-                                R$ {{ number_format($ultimoMes['entrada'] ?? 0, 2, ',', '.') }}
-                            </h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card border-danger shadow-sm">
-                        <div class="card-body">
-                            <h6 class="text-danger">📉 Saídas</h6>
-                            <h3 class="fw-bold text-danger">
-                                R$ {{ number_format($ultimoMes['saida'] ?? 0, 2, ',', '.') }}
-                            </h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card border-secondary shadow-sm">
-                        <div class="card-body">
-                            <h6 class="{{ ($ultimoMes['saldo'] ?? 0) >= 0 ? 'text-success' : 'text-danger' }}">📊 Saldo</h6>
-                            <h3 class="fw-bold {{ ($ultimoMes['saldo'] ?? 0) >= 0 ? 'text-success' : 'text-danger' }}">
-                                R$ {{ number_format($ultimoMes['saldo'] ?? 0, 2, ',', '.') }}
-                            </h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card border-info shadow-sm">
-                        <div class="card-body">
-                            <h6 class="text-info">🧠 Atendimentos Totais</h6>
-                            <h3 class="fw-bold text-info">{{ $totalAtendimentos }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- === DISTRIBUIÇÃO DE ATENDIMENTOS === --}}
-            <div class="row text-center mb-4">
-                <div class="col-md-3"><span class="fw-bold text-primary">Consultas:</span><h5>{{ $ultimoMes['consulta'] ?? 0 }}</h5></div>
-                <div class="col-md-3"><span class="fw-bold text-success">Tratamentos:</span><h5>{{ $ultimoMes['tratamento'] ?? 0 }}</h5></div>
-                <div class="col-md-3"><span class="fw-bold text-warning">Hipnose:</span><h5>{{ $ultimoMes['sessaohipnose'] ?? 0 }}</h5></div>
-                <div class="col-md-3"><span class="fw-bold text-purple">Psicanálise:</span><h5>{{ $ultimoMes['sessaopsicanalise'] ?? 0 }}</h5></div>
-            </div>
-
-            <hr>
-
-            {{-- === GRÁFICOS === --}}
-            <div class="row mb-4">
-                <div class="col-md-4">
-                    <h5 class="text-center mb-2">💰 Entradas x Saídas</h5>
-                    <canvas id="financeChart" height="180"></canvas>
-                </div>
-                <div class="col-md-4">
-                    <h5 class="text-center mb-2">🧠 Atendimentos por Tipo (Histórico)</h5>
-                    <canvas id="sessionsChart" height="180"></canvas>
-                </div>
-                <div class="col-md-4">
-                    <h5 class="text-center mb-2">📊 Proporção de Atendimentos ({{ $ultimoMes['data'] ?? '' }})</h5>
-                    <canvas id="sessionsPieChart" height="180"></canvas>
-                </div>
-            </div>
-
-            {{-- === FATURAMENTO SEMANAL === --}}
-            <hr class="my-4">
-            <h4 class="text-center">📈 Faturamento Semanal (Últimos 3 Meses)</h4>
-            <canvas id="weeklyChart" height="120"></canvas>
-
-            {{-- === TABELA DETALHADA === --}}
-            <hr class="my-4">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle text-center">
-                    <thead class="table-light">
+        <div class="card-body p-0">
+            <table class="table table-striped table-hover mb-0 text-center align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mês/Ano</th>
+                        <th>Entrada (R$)</th>
+                        <th>Saída (R$)</th>
+                        <th>Saldo (R$)</th>
+                        <th>Consultas</th>
+                        <th>Tratamentos</th>
+                        <th>Hipnoses</th>
+                        <th>Psicanálises</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($dadosMensais as $item)
                         <tr>
-                            <th>Mês/Ano</th>
-                            <th>💰 Entradas (R$)</th>
-                            <th>📉 Saídas (R$)</th>
-                            <th>📊 Saldo (R$)</th>
-                            <th>🧠 Consultas</th>
-                            <th>💼 Tratamentos</th>
-                            <th>🌀 Hipnose</th>
-                            <th>🪞 Psicanálise</th>
-                            <th>📅 Total</th>
-                            <th>📈 Marketing</th>
-                            <th>🚗 Transporte</th>
-                            <th>🏢 Sala</th>
-                            <th>🍽️ Alimentação</th>
-                            <th>📦 Material</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($dados as $d)
-                        <tr>
-                            <td><strong>{{ $d['data'] }}</strong></td>
-                            <td class="text-success fw-bold">{{ number_format($d['entrada'] ?? 0, 2, ',', '.') }}</td>
-                            <td class="text-danger fw-bold">{{ number_format($d['saida'] ?? 0, 2, ',', '.') }}</td>
-                            <td class="@if(($d['saldo'] ?? 0) >= 0) text-success @else text-danger @endif fw-bold">
-                                {{ number_format($d['saldo'] ?? 0, 2, ',', '.') }}
+                            <td><strong>{{ $item->data }}</strong></td>
+                            <td class="text-success">R$ {{ number_format($item->entrada, 2, ',', '.') }}</td>
+                            <td class="text-danger">R$ {{ number_format($item->saida, 2, ',', '.') }}</td>
+                            <td class="{{ $item->saldo >= 0 ? 'text-success' : 'text-danger' }}">
+                                R$ {{ number_format($item->saldo, 2, ',', '.') }}
                             </td>
-                            <td>{{ $d['consulta'] ?? 0 }}</td>
-                            <td>{{ $d['tratamento'] ?? 0 }}</td>
-                            <td>{{ $d['sessaohipnose'] ?? 0 }}</td>
-                            <td>{{ $d['sessaopsicanalise'] ?? 0 }}</td>
-                            <td class="fw-bold text-primary">
-                                {{
-                                    ($d['consulta'] ?? 0)
-                                    + ($d['tratamento'] ?? 0)
-                                    + ($d['sessaohipnose'] ?? 0)
-                                    + ($d['sessaopsicanalise'] ?? 0)
-                                }}
-                            </td>
-                            <td>{{ number_format($d['marketing'] ?? 0, 2, ',', '.') }}</td>
-                            <td>{{ number_format($d['transporte'] ?? 0, 2, ',', '.') }}</td>
-                            <td>{{ number_format($d['sala'] ?? 0, 2, ',', '.') }}</td>
-                            <td>{{ number_format($d['alimentacao'] ?? 0, 2, ',', '.') }}</td>
-                            <td>{{ number_format($d['material'] ?? 0, 2, ',', '.') }}</td>
+                            <td>{{ $item->consulta }}</td>
+                            <td>{{ $item->tratamento }}</td>
+                            <td>{{ $item->sessaohipnose }}</td>
+                            <td>{{ $item->sessaopsicanalise }}</td>
+                            <td><strong>{{ $item->total_atendimentos }}</strong></td>
                         </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-
+                    @endforeach
+                </tbody>
+            </table>
         </div>
     </div>
+
+    {{-- COMPARATIVO SEMANAL DE FATURAMENTO --}}
+    <div class="card mt-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">📅 Comparativo Semanal de Faturamento (Últimos 3 meses)</h5>
+        </div>
+        <div class="card-body p-0">
+            @php
+                $agrupado = [];
+                foreach ($dadosSemanais as $dado) {
+                    $key = $dado->semana_do_mes;
+                    $agrupado[$key][$dado->mes] = $dado;
+                }
+
+                // Pegar os 3 meses mais recentes
+                $meses = collect($dadosSemanais)->pluck('mes')->unique()->sortDesc()->take(3)->values();
+            @endphp
+
+            <table class="table table-striped table-hover mb-0 text-center align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Semana</th>
+                        @foreach ($meses as $mes)
+                            <th>{{ str_pad($mes, 2, '0', STR_PAD_LEFT) }}/{{ $dadosSemanais[0]->ano }}</th>
+                        @endforeach
+                        <th>Diferença (R$)</th>
+                        <th>Variação (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($agrupado as $semana => $valores)
+                        @php
+                            $valoresMes = [];
+                            foreach ($meses as $mes) {
+                                $valoresMes[$mes] = isset($valores[$mes]) ? (float) $valores[$mes]->faturamento : 0;
+                            }
+
+                            // Comparar o mês mais recente com o anterior
+                            $mesAtual = $meses[0];
+                            $mesAnterior = $meses[1] ?? null;
+
+                            $valorAtual = $valoresMes[$mesAtual] ?? 0;
+                            $valorAnterior = $mesAnterior ? $valoresMes[$mesAnterior] : 0;
+
+                            $diferenca = $valorAtual - $valorAnterior;
+                            $variacao = $valorAnterior > 0 ? ($diferenca / $valorAnterior) * 100 : 0;
+                        @endphp
+
+                        <tr>
+                            <td><strong>Semana {{ $semana }}</strong></td>
+                            @foreach ($meses as $mes)
+                                <td>
+                                    @if ($valoresMes[$mes] > 0)
+                                        R$ {{ number_format($valoresMes[$mes], 2, ',', '.') }}
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                            @endforeach
+                            <td class="{{ $diferenca >= 0 ? 'text-success' : 'text-danger' }}">
+                                {{ $diferenca >= 0 ? '+' : '' }}R$ {{ number_format($diferenca, 2, ',', '.') }}
+                            </td>
+                            <td class="{{ $variacao >= 0 ? 'text-success' : 'text-danger' }}">
+                                {{ $variacao >= 0 ? '+' : '' }}{{ number_format($variacao, 1, ',', '.') }}%
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
-
-{{-- === CHARTS === --}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    console.log("✅ Charts carregados com sucesso");
-
-    // Dados principais
-    const meses = @json(array_column($dados, 'data'));
-    const entradas = @json(array_column($dados, 'entrada')).map(v => parseFloat(v));
-    const saidas = @json(array_column($dados, 'saida')).map(v => parseFloat(v));
-    const consultas = @json(array_column($dados, 'consulta')).map(v => parseFloat(v));
-    const tratamentos = @json(array_column($dados, 'tratamento')).map(v => parseFloat(v));
-    const hipnoses = @json(array_column($dados, 'sessaohipnose')).map(v => parseFloat(v));
-    const psicanalises = @json(array_column($dados, 'sessaopsicanalise')).map(v => parseFloat(v));
-    const semanal = @json($comparativoSemanal);
-
-    // === Financeiro ===
-    new Chart(document.getElementById('financeChart'), {
-        type: 'bar',
-        data: {
-            labels: meses,
-            datasets: [
-                { label: 'Entradas (R$)', data: entradas, backgroundColor: 'rgba(75,192,192,0.7)' },
-                { label: 'Saídas (R$)', data: saidas, backgroundColor: 'rgba(255,99,132,0.7)' }
-            ]
-        },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
-    });
-
-    // === Atendimentos ===
-    new Chart(document.getElementById('sessionsChart'), {
-        type: 'line',
-        data: {
-            labels: meses,
-            datasets: [
-                { label: 'Consultas', data: consultas, borderColor: '#007bff', fill: false, tension: 0.3 },
-                { label: 'Tratamentos', data: tratamentos, borderColor: '#28a745', fill: false, tension: 0.3 },
-                { label: 'Hipnose', data: hipnoses, borderColor: '#ffc107', fill: false, tension: 0.3 },
-                { label: 'Psicanálise', data: psicanalises, borderColor: '#6f42c1', fill: false, tension: 0.3 }
-            ]
-        },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
-    });
-
-    // === Pizza ===
-    const ultimo = @json($ultimoMes);
-    new Chart(document.getElementById('sessionsPieChart'), {
-        type: 'pie',
-        data: {
-            labels: ['Consultas', 'Tratamentos', 'Hipnose', 'Psicanálise'],
-            datasets: [{
-                data: [
-                    parseFloat(ultimo.consulta ?? 0),
-                    parseFloat(ultimo.tratamento ?? 0),
-                    parseFloat(ultimo.sessaohipnose ?? 0),
-                    parseFloat(ultimo.sessaopsicanalise ?? 0)
-                ],
-                backgroundColor: ['#007bff', '#28a745', '#ffc107', '#6f42c1']
-            }]
-        },
-        options: { plugins: { legend: { position: 'bottom' } } }
-    });
-
-    // === Faturamento semanal ===
-    if (semanal.length) {
-        const labelsSemanais = semanal.map(s => `${s.semana_inicio}→${s.semana_fim}`);
-        const faturamento = semanal.map(s => parseFloat(s.faturamento));
-
-        new Chart(document.getElementById('weeklyChart'), {
-            type: 'line',
-            data: {
-                labels: labelsSemanais,
-                datasets: [{
-                    label: 'Faturamento (R$)',
-                    data: faturamento,
-                    borderColor: '#17a2b8',
-                    backgroundColor: 'rgba(23,162,184,0.3)',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { position: 'bottom' } },
-                scales: { y: { beginAtZero: true } }
-            }
-        });
-    }
-});
-</script>
-
-<style>
-.text-purple { color: #6f42c1 !important; }
-</style>
 @endsection
