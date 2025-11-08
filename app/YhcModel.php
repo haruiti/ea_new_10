@@ -406,6 +406,7 @@ class YhcModel extends Model
         }
     }
 
+
     public function getAnaliseSemanal()
     {
         return DB::select("
@@ -414,23 +415,25 @@ class YhcModel extends Model
                 DATE_FORMAT(MIN(v.data), '%d/%m') AS semana_inicio,
                 DATE_FORMAT(MAX(v.data), '%d/%m') AS semana_fim,
                 
-                -- Faturamento semanal
+                -- 💰 Faturamento semanal
                 SUM(v.valor_pago) AS faturamento,
                 
-                -- Novas consultas (pacote_id = 1)
+                -- 📅 Novas consultas (pacote_id = 1)
                 SUM(CASE WHEN v.pacote_id = 1 THEN 1 ELSE 0 END) AS consultas,
                 
-                -- Sessões avulsas de hipnose (pacote_id = 5)
+                -- 🌀 Sessões avulsas de hipnose (pacote_id = 5)
                 SUM(CASE WHEN v.pacote_id = 5 THEN 1 ELSE 0 END) AS hipnoses,
                 
-                -- Sessões avulsas de psicanálise (pacote_id = 7)
+                -- 🧠 Sessões avulsas de psicanálise (pacote_id = 7)
                 SUM(CASE WHEN v.pacote_id = 7 THEN 1 ELSE 0 END) AS psicanalises,
                 
-                -- Total geral
+                -- 🔢 Total de atendimentos da semana
                 SUM(CASE WHEN v.pacote_id IN (1,5,7) THEN 1 ELSE 0 END) AS total_atendimentos
 
             FROM yhc_venda v
-            WHERE v.pacote_id IN (1,5,7)
+            WHERE 
+                v.pacote_id IN (1,5,7)
+                AND v.data >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
             GROUP BY ano_semana
             ORDER BY ano_semana DESC
         ");
