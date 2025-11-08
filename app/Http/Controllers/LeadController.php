@@ -258,58 +258,74 @@ class LeadController extends Controller
     }
 
     // =========================================================
-// 🌐 API — Recebe leads vindos do site (formulário HTML)
-// =========================================================
+    // 🌐 API — Recebe leads vindos do site (formulário HTML)
+    // =========================================================
     public function receberDoFormulario(Request $request)
     {
         try {
-                $validated = $request->validate([
-                    'name' => 'required|min:3',
-                    'email' => 'required|email',
-                    'phone' => 'nullable|string',
-                    'message' => 'required|string',
-                    'lead_code' => 'nullable|string',
-                ]);
+            // ✅ Garante um lead_code (caso o front não envie)
+            $lead_code = $request->input('lead_code') ?? strtoupper(Str::random(8));
 
-
-            // 🔹 Cria o lead principal
-            $lead = \App\Models\Lead::create([
-                'lead_code' => $validated['lead_code'],
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'phone' => $validated['phone'] ?? null,
-                'notes' => $validated['message'],
-                'source' => 'Formulário do Site',
-                'status' => 'novo',
+            // ✅ Validação dos campos do formulário
+            $validated = $request->validate([
+                'name' => 'required|string|min:3',
+                'email' => 'nullable|email',
+                'phone' => 'nullable|string',
+                'message' => 'nullable|string',
             ]);
-            $lead_code = $validated['lead_code'] ?? strtoupper(Str::random(8));
 
+            $source = $request->input('source') ?? 'Formulário do Site';
 
-            // 🔹 Cria o tracking (caso você tenha a tabela)
+            // ✅ Cria ou atualiza lead principal
+            \App\Models\Lead::updateOrCreate(
+                ['lead_code' => $lead_code],
+                [
+                    'name' => $validated['name'],
+                    'email' => $validated['email'] ?? null,
+                    'phone' => $validated['phone'] ?? null,
+                    'notes' => $validated['message'] ?? null,
+                    'source' => $source,
+                    'status' => 'novo',
+                ]
+            );
+
+            // ✅ Cria ou atualiza o tracking
             if (class_exists(\App\Models\LeadTracking::class)) {
-                \App\Models\LeadTracking::create([
-                    'lead_code' => $validated['lead_code'],
-                    'gclid' => $request->input('gclid'),
-                    'utm_source' => $request->input('utm_source'),
-                    'utm_medium' => $request->input('utm_medium'),
-                    'utm_campaign' => $request->input('utm_campaign'),
-                    'utm_term' => $request->input('utm_term'),
-                    'utm_content' => $request->input('utm_content'),
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'referrer' => $request->headers->get('referer'),
-                ]);
+                \App\Models\LeadTracking::updateOrCreate(
+                    ['lead_code' => $lead_code],
+                    [
+                        'gclid' => $request->input('gclid'),
+                        'utm_source' => $request->input('utm_source'),
+                        'utm_medium' => $request->input('utm_medium'),
+                        'utm_campaign' => $request->input('utm_campaign'),
+                        'utm_term' => $request->input('utm_term'),
+                        'utm_content' => $request->input('utm_content'),
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'referrer' => $request->headers->get('referer'),
+                        'source' => $source,
+                        'clicked_whatsapp' => false,
+                    ]
+                );
             }
 
             return response()->json([
                 'success' => true,
-                'message' => "Lead recebido com sucesso! (Código: {$validated['lead_code']})"
+                'message' => "✅ Lead recebido com sucesso! (Código: {$lead_code})",
             ]);
-        } catch (\Exception $e) {
-            \Log::error('Erro ao salvar lead do formulário: '.$e->getMessage());
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erro interno ao salvar lead.'
+                'message' => 'Erro de validação nos dados enviados.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Erro ao salvar lead do formulário: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno ao salvar lead.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -381,7 +397,10 @@ class LeadController extends Controller
     public function salvarLead(Request $request)
     {
         try {
-            // ✅ Validação básica (agora lead_code é opcional, mas gerado se faltar)
+            // ✅ Se não houver lead_code, gera automaticamente
+            $lead_code = $request->input('lead_code') ?? strtoupper(Str::random(8));
+
+            // ✅ Validação básica
             $request->validate([
                 'name' => 'required|string|min:2',
                 'email' => 'nullable|email',
@@ -389,35 +408,33 @@ class LeadController extends Controller
                 'message' => 'nullable|string',
             ]);
 
-            // ✅ Garante lead_code mesmo se não vier do front
-            $lead_code = $request->input('lead_code') ?: strtoupper(Str::random(8));
             $source = $request->input('source') ?? 'Formulário do Site';
 
             // ✅ Atualiza ou cria no leads_tracking
-            LeadTracking::updateOrCreate(
+            \App\Models\LeadTracking::updateOrCreate(
                 ['lead_code' => $lead_code],
                 [
-                    'gclid'        => $request->input('gclid'),
-                    'utm_source'   => $request->input('utm_source'),
-                    'utm_medium'   => $request->input('utm_medium'),
+                    'gclid' => $request->input('gclid'),
+                    'utm_source' => $request->input('utm_source'),
+                    'utm_medium' => $request->input('utm_medium'),
                     'utm_campaign' => $request->input('utm_campaign'),
-                    'utm_term'     => $request->input('utm_term'),
-                    'utm_content'  => $request->input('utm_content'),
-                    'ip_address'   => $request->ip(),
-                    'user_agent'   => $request->userAgent(),
-                    'referrer'     => $request->headers->get('referer'),
-                    'source'       => $source,
+                    'utm_term' => $request->input('utm_term'),
+                    'utm_content' => $request->input('utm_content'),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'referrer' => $request->headers->get('referer'),
+                    'source' => $source,
                 ]
             );
 
             // ✅ Atualiza ou cria no leads principal
-            Lead::updateOrCreate(
+            \App\Models\Lead::updateOrCreate(
                 ['lead_code' => $lead_code],
                 [
-                    'name'   => $request->input('name'),
-                    'email'  => $request->input('email'),
-                    'phone'  => $request->input('phone'),
-                    'notes'  => $request->input('message'),
+                    'name' => $request->input('name'),
+                    'email' => $request->input('email'),
+                    'phone' => $request->input('phone'),
+                    'notes' => $request->input('message'),
                     'source' => $source,
                     'status' => 'novo',
                 ]
@@ -432,7 +449,7 @@ class LeadController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erro interno ao salvar lead.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
