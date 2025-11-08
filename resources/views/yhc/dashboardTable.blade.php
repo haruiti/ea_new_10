@@ -127,11 +127,18 @@
 
             @foreach(array_reverse($analiseSemanal) as $semana)
                 @php
-                    $varAtend = $prevAtend ? (($semana->total_atendimentos - $prevAtend) / $prevAtend) * 100 : null;
-                    $varFat = $prevFat ? (($semana->faturamento - $prevFat) / $prevFat) * 100 : null;
+                    $varAtend = ($prevAtend && $prevAtend != 0) 
+                        ? (($semana->total_atendimentos - $prevAtend) / $prevAtend) * 100 
+                        : null;
+
+                    $varFat = ($prevFat && $prevFat != 0) 
+                        ? (($semana->faturamento - $prevFat) / $prevFat) * 100 
+                        : null;
+
                     $prevAtend = $semana->total_atendimentos;
                     $prevFat = $semana->faturamento;
                 @endphp
+
                 <tr>
                     <td><strong>{{ $semana->semana_inicio }} → {{ $semana->semana_fim }}</strong></td>
                     <td>{{ $semana->consultas }}</td>
