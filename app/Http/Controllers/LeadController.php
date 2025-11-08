@@ -152,9 +152,9 @@ class LeadController extends Controller
                          ->with('success', 'Lead excluído com sucesso!');
     }
 
-    // =========================================================
+    // ========================================================
     // 📱 API — Usado pelo Bot do WhatsApp
-    // =========================================================
+    // ========================================================
     public function obterOuCriar(Request $request)
     {
         $phone = preg_replace('/\D/', '', $request->phone);
@@ -205,8 +205,10 @@ class LeadController extends Controller
     public function receberDoFormulario(Request $request)
     {
         try {
-            $lead_code = $request->input('lead_code') ?? $this->generateUniqueLeadCode();
+            // ✅ Garante um lead_code (caso o front não envie)
+            $lead_code = $request->input('lead_code') ?? strtoupper(Str::random(8));
 
+            // ✅ Validação dos campos do formulário
             $validated = $request->validate([
                 'name' => 'required|string|min:3',
                 'email' => 'nullable|email',
@@ -216,9 +218,11 @@ class LeadController extends Controller
 
             $source = $request->input('source') ?? 'Formulário do Site';
 
-            Lead::updateOrCreate(
+            // ✅ Cria ou atualiza lead principal
+            \App\Models\Lead::updateOrCreate(
                 ['lead_code' => $lead_code],
                 [
+                    'lead_code' => $lead_code,
                     'name' => $validated['name'],
                     'email' => $validated['email'] ?? null,
                     'phone' => $validated['phone'] ?? null,
@@ -228,22 +232,25 @@ class LeadController extends Controller
                 ]
             );
 
-            LeadTracking::updateOrCreate(
-                ['lead_code' => $lead_code],
-                [
-                    'gclid' => $request->input('gclid'),
-                    'utm_source' => $request->input('utm_source'),
-                    'utm_medium' => $request->input('utm_medium'),
-                    'utm_campaign' => $request->input('utm_campaign'),
-                    'utm_term' => $request->input('utm_term'),
-                    'utm_content' => $request->input('utm_content'),
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'referrer' => $request->headers->get('referer'),
-                    'source' => $source,
-                    'clicked_whatsapp' => false,
-                ]
-            );
+            // ✅ Cria ou atualiza o tracking
+            if (class_exists(\App\Models\LeadTracking::class)) {
+                \App\Models\LeadTracking::updateOrCreate(
+                    ['lead_code' => $lead_code],
+                    [
+                        'lead_code' => $lead_code,
+                        'gclid' => $request->input('gclid'),
+                        'utm_source' => $request->input('utm_source'),
+                        'utm_medium' => $request->input('utm_medium'),
+                        'utm_campaign' => $request->input('utm_campaign'),
+                        'utm_term' => $request->input('utm_term'),
+                        'utm_content' => $request->input('utm_content'),
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'referrer' => $request->headers->get('referer'),
+                        'source' => $source,
+                    ]
+                );
+            }
 
             return response()->json([
                 'success' => true,
@@ -257,10 +264,7 @@ class LeadController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Erro ao salvar lead do formulário: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'input' => $request->all(),
-            ]);
+            \Log::error('Erro ao salvar lead do formulário: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Erro interno ao salvar lead.',
@@ -268,6 +272,7 @@ class LeadController extends Controller
             ], 500);
         }
     }
+
 
     public function goWhatsapp()
     {
@@ -302,7 +307,6 @@ class LeadController extends Controller
                     'user_agent' => $request->userAgent(),
                     'referrer' => $request->headers->get('referer'),
                     'source' => $source,
-                    'clicked_whatsapp' => true,
                 ]
             );
 
