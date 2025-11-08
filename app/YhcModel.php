@@ -407,35 +407,22 @@ class YhcModel extends Model
     }
 
 
-    public function getAnaliseSemanal()
+    public function getComparativoSemanalFaturamento()
     {
         return DB::select("
             SELECT 
-                YEARWEEK(v.data, 1) AS ano_semana,
+                YEAR(v.data) AS ano,
+                MONTH(v.data) AS mes,
+                WEEK(v.data, 1) - WEEK(DATE_SUB(v.data, INTERVAL DAY(v.data)-1 DAY), 1) + 1 AS semana_do_mes,
                 DATE_FORMAT(MIN(v.data), '%d/%m') AS semana_inicio,
                 DATE_FORMAT(MAX(v.data), '%d/%m') AS semana_fim,
-                
-                -- 💰 Faturamento semanal
-                SUM(v.valor_pago) AS faturamento,
-                
-                -- 📅 Novas consultas (pacote_id = 1)
-                SUM(CASE WHEN v.pacote_id = 1 THEN 1 ELSE 0 END) AS consultas,
-                
-                -- 🌀 Sessões avulsas de hipnose (pacote_id = 5)
-                SUM(CASE WHEN v.pacote_id = 5 THEN 1 ELSE 0 END) AS hipnoses,
-                
-                -- 🧠 Sessões avulsas de psicanálise (pacote_id = 7)
-                SUM(CASE WHEN v.pacote_id = 7 THEN 1 ELSE 0 END) AS psicanalises,
-                
-                -- 🔢 Total de atendimentos da semana
-                SUM(CASE WHEN v.pacote_id IN (1,5,7) THEN 1 ELSE 0 END) AS total_atendimentos
-
+                SUM(v.valor_pago) AS faturamento
             FROM yhc_venda v
             WHERE 
                 v.pacote_id IN (1,5,7)
                 AND v.data >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-            GROUP BY ano_semana
-            ORDER BY ano_semana DESC
+            GROUP BY ano, mes, semana_do_mes
+            ORDER BY ano DESC, mes DESC, semana_do_mes ASC
         ");
     }
 

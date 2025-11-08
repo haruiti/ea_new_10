@@ -313,12 +313,12 @@ class Yhc extends Controller
             $atual = $dados[$i]['total_atendimentos'] ?? 0;
             $crescimento[$dados[$i]['data']] = $anterior > 0 ? round((($atual - $anterior) / $anterior) * 100, 1) : 0;
         }
-        $analiseSemanal = $this->YhcModel->getAnaliseSemanal();
-
+        
+        $comparativoSemanal = $this->YhcModel->getComparativoSemanalFaturamento();
         // 🔹 Envia tudo para a view
-        return view("yhc/dashboardTable")
-            ->with('dados', $dados)
-            ->with('analiseSemanal', $analiseSemanal);
+       return view("yhc/dashboardTable")
+        ->with('dados', $dados)
+        ->with('comparativoSemanal', $comparativoSemanal);
 
     }
 

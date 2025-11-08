@@ -98,78 +98,6 @@
             </div>
             <hr class="my-4">
 
-<div class="row">
-    <div class="col-md-12">
-        <h4 class="text-center mb-3">📈 Comparativo Semanal — Consultas, Sessões e Faturamento</h4>
-        <canvas id="weeklyChart" height="130"></canvas>
-    </div>
-</div>
-
-<div class="table-responsive mt-4">
-    <table class="table table-striped text-center align-middle">
-        <thead class="table-light">
-            <tr>
-                <th>Semana</th>
-                <th>Consultas</th>
-                <th>Hipnose</th>
-                <th>Psicanálise</th>
-                <th>Total</th>
-                <th>Faturamento (R$)</th>
-                <th>Variação Atend.</th>
-                <th>Variação Fatur.</th>
-            </tr>
-        </thead>
-        <tbody>
-            @php
-                $prevAtend = null;
-                $prevFat = null;
-            @endphp
-
-            @foreach(array_reverse($analiseSemanal) as $semana)
-                @php
-                    $varAtend = ($prevAtend && $prevAtend != 0) 
-                        ? (($semana->total_atendimentos - $prevAtend) / $prevAtend) * 100 
-                        : null;
-
-                    $varFat = ($prevFat && $prevFat != 0) 
-                        ? (($semana->faturamento - $prevFat) / $prevFat) * 100 
-                        : null;
-
-                    $prevAtend = $semana->total_atendimentos;
-                    $prevFat = $semana->faturamento;
-                @endphp
-
-                <tr>
-                    <td><strong>{{ $semana->semana_inicio }} → {{ $semana->semana_fim }}</strong></td>
-                    <td>{{ $semana->consultas }}</td>
-                    <td>{{ $semana->hipnoses }}</td>
-                    <td>{{ $semana->psicanalises }}</td>
-                    <td class="fw-bold">{{ $semana->total_atendimentos }}</td>
-                    <td class="text-success fw-bold">{{ number_format($semana->faturamento, 2, ',', '.') }}</td>
-                    <td>
-                        @if(!is_null($varAtend))
-                            @if($varAtend >= 0)
-                                <span class="text-success fw-bold">+{{ number_format($varAtend, 1) }}%</span>
-                            @else
-                                <span class="text-danger fw-bold">{{ number_format($varAtend, 1) }}%</span>
-                            @endif
-                        @endif
-                    </td>
-                    <td>
-                        @if(!is_null($varFat))
-                            @if($varFat >= 0)
-                                <span class="text-success fw-bold">+{{ number_format($varFat, 1) }}%</span>
-                            @else
-                                <span class="text-danger fw-bold">{{ number_format($varFat, 1) }}%</span>
-                            @endif
-                        @endif
-                    </td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
-</div>
-
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const semanal = @json($analiseSemanal);
@@ -265,6 +193,58 @@ document.addEventListener("DOMContentLoaded", function() {
         </div>
     </div>
 </div>
+
+<h4 style="margin-top:30px;">📊 Comparativo Semanal de Faturamento (Últimos 3 Meses)</h4>
+
+<table class="table table-striped table-bordered" style="width: 100%; text-align:center;">
+    <thead class="thead-dark">
+        <tr>
+            <th>Semana do Mês</th>
+            <th>Período</th>
+            <th>Mês</th>
+            <th>Faturamento (R$)</th>
+            <th>Variação (%)</th>
+        </tr>
+    </thead>
+    <tbody>
+        @php
+            $lastWeek = null;
+            $lastValue = null;
+        @endphp
+
+        @foreach($comparativoSemanal as $item)
+            @php
+                $mesNome = DateTime::createFromFormat('!m', $item->mes)->format('F');
+                $mesNome = ucfirst(strftime('%B', mktime(0, 0, 0, $item->mes, 10)));
+
+                $variacao = ($lastValue && $lastWeek == $item->semana_do_mes)
+                    ? round((($item->faturamento - $lastValue) / $lastValue) * 100, 1)
+                    : null;
+
+                $cor = $variacao > 0 ? 'green' : ($variacao < 0 ? 'red' : 'black');
+            @endphp
+            <tr>
+                <td>{{ $item->semana_do_mes }}</td>
+                <td>{{ $item->semana_inicio }} → {{ $item->semana_fim }}</td>
+                <td>{{ $mesNome }}/{{ $item->ano }}</td>
+                <td>R$ {{ number_format($item->faturamento, 2, ',', '.') }}</td>
+                <td style="color: {{ $cor }}">
+                    @if(!is_null($variacao))
+                        {{ $variacao > 0 ? '+' : '' }}{{ $variacao }}%
+                    @else
+                        -
+                    @endif
+                </td>
+            </tr>
+
+            @php
+                $lastWeek = $item->semana_do_mes;
+                $lastValue = $item->faturamento;
+            @endphp
+        @endforeach
+    </tbody>
+</table>
+
 
 {{-- Chart.js --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
