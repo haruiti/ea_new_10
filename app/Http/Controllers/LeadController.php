@@ -263,13 +263,14 @@ class LeadController extends Controller
     public function receberDoFormulario(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'name' => 'required|min:3',
-                'email' => 'required|email',
-                'phone' => 'nullable|string',
-                'message' => 'required|string',
-                'lead_code' => 'required|string',
-            ]);
+                $validated = $request->validate([
+                    'name' => 'required|min:3',
+                    'email' => 'required|email',
+                    'phone' => 'nullable|string',
+                    'message' => 'required|string',
+                    'lead_code' => 'nullable|string',
+                ]);
+
 
             // 🔹 Cria o lead principal
             $lead = \App\Models\Lead::create([
@@ -281,6 +282,8 @@ class LeadController extends Controller
                 'source' => 'Formulário do Site',
                 'status' => 'novo',
             ]);
+            $lead_code = $validated['lead_code'] ?? strtoupper(Str::random(8));
+
 
             // 🔹 Cria o tracking (caso você tenha a tabela)
             if (class_exists(\App\Models\LeadTracking::class)) {
