@@ -30,6 +30,7 @@ return [
 
     'allowed_origins' => [
         'https://www.yamatohipnoseclinica.com.br',
+        'https://yamatohipnoseclinica.com.br',
         'https://offices.yamatohipnoseclinica.com.br',
     ],
 
@@ -71,6 +72,6 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'supports_credentials' => true,
+    'supports_credentials' => false,
 
 ];
