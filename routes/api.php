@@ -5,6 +5,9 @@ use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\AvailableAppointmentsController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
 
 // -------------------------
 // APPOINTMENTS
@@ -39,3 +42,14 @@ Route::get('/conversas/historico/{numero}', [ConversationController::class, 'his
 Route::get('/conversas/recentes', [ConversationController::class, 'ultimosTresMeses']);
 Route::get('/conversas/campanhas', [ConversationController::class, 'listarCampanhas']);
 Route::post('/conversas/lote', [ConversationController::class, 'storeBatch']);
+
+
+
+Route::post('/gerar-lead-code', function (Request $request) {
+    $leadCode = Str::upper(Str::random(8));
+
+    return response()->json([
+        'lead_code' => $leadCode,
+        'status' => 'success'
+    ]);
+});
